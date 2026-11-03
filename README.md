@@ -1,4 +1,4 @@
-# aFluid RSS paper
+# MPM learning RSS paper
 
 `paper_template.tex` is the main document. It keeps the packages, title,
 authors, section order, and bibliography setup. Edit the paper text in
