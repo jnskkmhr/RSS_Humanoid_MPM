@@ -1,0 +1,28 @@
+% !TEX root = paper.tex
+% Shared macros. Requires xcolor, amssymb, and bm (loaded in paper.tex).
+
+% ---------------------------------------------------------------- Notation
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\method}{moving-patch MPM}
+
+% ---------------------------------------------------------------- Drafting
+% Red placeholder for results, numbers, and claims that still need measured evidence.
+\newcommand{\pending}[1]{\textcolor{red}{[#1]}}
+
+% ---------------------------------------------------------------- Revision
+\newcommand{\revision}[1]{\textcolor{teal}{\%#1}}
+\newcommand*{\Revised}{\textcolor{black}}
+
+% ---------------------------------------------------------------- Comments
+% \max is a built-in math operator, so Max uses \maxcomment.
+\newcommand{\junnosuke}[1]{\textbf{\textcolor{blue}{Jn: #1}}}
+\newcommand{\junnosukereply}[1]{\textbf{\textcolor{blue}{[Jn: #1]}}}
+\newcommand{\antoine}[1]{\textbf{\textcolor{purple}{Antoine: #1}}}
+\newcommand{\antoinereply}[1]{\textbf{\textcolor{purple}{[Antoine: #1]}}}
+\newcommand{\maxcomment}[1]{\textbf{\textcolor{orange}{Max: #1}}}
+\newcommand{\maxreply}[1]{\textbf{\textcolor{orange}{[Max: #1]}}}
+\newcommand{\mayank}[1]{\textbf{\textcolor{magenta}{Mayank: #1}}}
+\newcommand{\mayankreply}[1]{\textbf{\textcolor{magenta}{[Mayank: #1]}}}
+\newcommand{\kelly}[1]{\textbf{\textcolor{olive}{Kelly: #1}}}
+\newcommand{\kellyreply}[1]{\textbf{\textcolor{olive}{[Kelly: #1]}}}

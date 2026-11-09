@@ -1,5 +1,10 @@
-\section{Conclusion} 
-\label{sec:conclusion}
+% !TEX root = ../paper.tex
+\section{Conclusion}
+We present a framework for learning robot control policies on granular terrain that combines moving-patch MPM with Particle NeRD.
+The moving terrain patch restricts material updates to the region surrounding the robot and its interacting objects, while particle caching restores terrain deformation when the robot revisits a region.
+Particle NeRD further accelerates material updates within a restricted material-parameter range.
+\pending{Simulation and hardware experiments demonstrate that ...}
 
-The conclusion goes here.
-
+The moving patch excludes material outside the active region from solver steps, so stored terrain does not continue to relax or flow, and interactions beyond the patch boundary are neglected.
+Particle NeRD omits constitutive internal state from its inputs, and its auxiliary material response does not modify the predicted particles, so momentum conservation of the combined system is not guaranteed.
+Future work will (1) extend Particle NeRD to new materials such as lunar regolith by fine-tuning on small sets of material parameters and (2) \pending{second direction}.

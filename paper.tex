@@ -1,0 +1,41 @@
+% Reading draft based on project_scope.docx (2026-11-05).
+% Implementation context inspected 2026-11-07; no new experimental results claimed.
+% Five-page main-text target, followed by a separate references page.
+% The scope's additional unspecified RA-L study still needs author confirmation;
+% do not assign that venue to the GM-Loco arXiv preprint without verification.
+\documentclass[conference]{IEEEtran}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,array}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[bookmarks=true]{hyperref}
+\usepackage{xcolor}
+\input{shortcut}
+\hypersetup{pdftitle={Moving-Patch Material Point Simulation for Robot Learning on Deformable Terrain}}
+\begin{document}
+% \title{Moving-Patch Material Point Simulation\\for Robot Learning on Deformable Terrain}
+\title{Learning Robot Control Policy on Particle Systems}
+% You will get a Paper-ID when submitting a pdf file to the conference system
+\author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
+\maketitle
+
+\input{sections/abstract}%
+\IEEEpeerreviewmaketitle
+
+% Main text: edit each section in sections/.
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/methodology}
+\input{sections/evaluation}
+\input{sections/conclusion}
+
+% Keep the references on a separate page.
+\clearpage
+\begingroup
+\renewcommand{\bibfont}{\small}
+\bibliographystyle{unsrtnat}
+\bibliography{references,introduction_references}
+\endgroup
+
+\end{document}

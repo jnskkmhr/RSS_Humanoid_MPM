@@ -1,4 +1,12 @@
+% !TEX root = ../paper.tex
 \begin{abstract}
-The abstract goes here.
+Reinforcement learning (RL) in massively parallel simulation has enabled agile legged locomotion and loco-manipulation on rigid terrain, yet its extension to deformable granular media such as sand, regolith, and snow remains limited.
+Existing approaches either approximate robot-terrain interaction with reduced-order contact models that cannot represent displaced material and persistent deformation, or simulate particles within a bounded workspace whose cost grows with the simulated terrain volume.
+In this work, we present a moving terrain patch for the material point method (MPM) that restricts material updates to the region surrounding the robot and its interacting objects.
+Particle recycling supplies terrain entering the patch, while a particle cache stores the state of departing material and restores it when the robot revisits the region.
+This enables parallel policy training over unbounded terrain with MPM coupled to articulated robots.
+We further introduce Particle NeRD, which accelerates material updates within a restricted material-parameter range by predicting particle displacement with a collider-conditioned Transolver and reconstructing body reaction wrenches analytically.
+We train policies for Franka particle pushing, as well as velocity tracking and box pushing with the Unitree G1 humanoid, on MPM terrain.
+\pending{Simulation results on throughput and memory relative to full-domain MPM, and policy performance relative to rigid and reduced-order terrain models.}
+\pending{Hardware results for Unitree G1 walking and box pushing on physical granular terrain.}
 \end{abstract}
-

@@ -1,58 +1,32 @@
+% !TEX root = ../paper.tex
 \section{Introduction}
-This demo file is intended to serve as a ``starter file" for the
-Robotics: Science and Systems conference papers produced under \LaTeX\
-using IEEEtran.cls version 1.7a and later.  
+\junnosuke{Overall, discussion emhpasizes humanoid, but we add franka and most likely quadruped, so not sure if should emphasize humanoid.}
+Humanoid robots have demonstrated remarkable athletic skills such as parkour and running, as well as long-horizon dexterity in loco-manipulation and whole-body manipulation.
+These successes are largely attributed to fast and accurate physics simulation~\cite{makoviychuk2021isaacgym,mittal2025isaaclab} and large-scale reinforcement learning (RL)~\cite{zhang2026balanced}.
+However, the full potential of RL has yet to be realized in challenging outdoor environments such as sand, mud, and snow.
+Achieving reliable locomotion and manipulation on these types of terrain is crucial for field applications including planetary exploration, agriculture, and search and rescue.
+Although physics solvers for granular materials exist, robotics simulators lack the functionality required to train policies with them, particularly over unbounded scenes.
+Furthermore, numerical physics solvers have fundamental throughput limitations.
+Thus, achieving a general whole-body controller in the field is an open research question.
 
-Learning based controllers have enabled tremendous progress across many fields in robotics. This is in no small part thanks to online RL and massively parallel simulation. 
+Existing works leverage reduced-order force models~\cite{} and particle methods~\cite{} to simulate terrain-robot interactions.
+% lack functionality for policy training
+In particular, particle-based simulation can capture plastic deformation and granular material flow, but state-of-the-art robotics simulators lack support for policy training on particles.
+In these simulators, coupling between particle solvers and rigid-body dynamics is not fully explored, and efficient reset of particle states across parallel environments is not supported.
+% numerical solver throughput issue
+Moreover, the cost of each numerical material update grows with terrain volume, spatial resolution, and solver iterations.
+Although existing work uses the material point method (MPM) for policy training~\cite{werner2026materialstate}, its excavation task is confined to a small workspace, which in turn limits the simulation cost.
+Legged locomotion has no such bound, since the robot traverses terrain far beyond any fixed workspace.
+Thus, naively simulating the entire terrain with MPM requires millions of particles across tens to hundreds of terrains, which is computationally infeasible.
 
+We build our work on top of mixed MPM~\cite{daviet2026mixedmpm} for its ability to simulate diverse elastoplastic materials.
+To scale MPM to large terrains, we introduce moving terrain patch MPM, which simulates only a terrain patch around the robot and its interacting objects.
+\junnosuke{We probably need to talk about NeRD somwhere, but let me skip for now.}
+To further reduce simulation cost, we propose Particle NeRD, a neural surrogate model that predicts particle displacement from particle history and collider motion, and recovers the rigid-body reaction wrench analytically.
 
-Collection real-world data is hard and we need physically grounded simulators. 
-
-Why do we need this:
-- RPG: 
-- NTNU: 
-- EMPA: 
-- NVIDIA: 
-
-balance between accuracy, speed, and policy learning.
-- It'd not about what we thing where the line is, but it's about giving users the freedom to the bar where they want. 
-
-Most if not all the learning / simulation framework they expect policies to apply efforts on joints. 
-Is we enable wrenches on bodies.
-TLDR: almost everything is built for articulated / humanoids / quadrupeds. We unlock the non-joint driven systems to benefit from these frameworks.
-IsaacLab / Newton the actuator system is not meant to support bodies.
-
-CPU based wide diversity --> GPU based mostly targeted towards articulations / joints.
-
-
-Which characteristics do we need to enable the learning through OnlineRL.
-
-Modularity, one of the key design feature. 
-- does not end at the physics but also sensors and renderers
-
-- shared simulation framework for fluid based systems.
-  - Drones and Regular robots, Drones and boats. All in the same environments.
-  - Because it builds on newton it can also leverage different solvers like VBD for deformable materials making it easy to integrate ropes, cloth, but also robots. 
-- Massively parallel: it's 
-RL native. 
-   - Randomization is easy, it's meant for learning. Learning was one of the key decisional factors around the API design.
-   - IsaacLab integration for direct learning, default tasks and robot cojfigurations
-- Drones
-    - PX4 + Betaflight integration. 
-
-
-
-SECTIONS:
-Sec 3: Method: That's the simulation Core and how to we enable the modularity and toy examples. Similar to what we did for the initial demos with boats, ROVs, hot-air balloons, planes, drones.
-
-Would be nice to have a benchmark comparisons.
-
-Sec 4: Lab specific implemenations to support their use-cases.
-Sub Sec: One per lab where you describe the workflow.
-
-Sec 5: 
-
-
-
-
-- 
+In summary, our key contributions are: 
+\begin{itemize}
+\item A large-scale policy training framework for granular terrain, built on moving terrain patch MPM and Particle NeRD.
+\item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we presents particle soil manipulation with Franka, humanoid locomotion with Unitree G1 humanoid, and humanoid box loco-manipulation.
+\item Hardware deployment of the Unitree G1 humanoid robot for walking and box pushing on physical granular terrain.
+\end{itemize}

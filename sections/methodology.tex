@@ -1,0 +1,135 @@
+% !TEX root = ../paper.tex
+\section{Methodology}
+This section details our framework, which consists of moving-patch MPM (Sec.~\ref{sec:moving_patch}), environment design for reinforcement learning (Sec.~\ref{sec:env_design}), and Particle NeRD (Sec.~\ref{sec:particle_nerd}).
+
+\subsection{Moving Terrain Patch MPM}
+\label{sec:moving_patch}
+We simulate granular terrain with mixed MPM~\cite{daviet2026mixedmpm} in Newton~\cite{newton2025} and restrict the simulated material to a patch that moves with the robot and its interacting objects.
+Each parallel environment owns an independent particle set and rigid-body world, so environments that overlap in space do not share material state.
+
+\noindent\textbf{Patch Definition:}
+Each particle $i$ carries position $\vect{x}_i\in\R^3$, velocity $\vect{v}_i\in\R^3$, mass $m_i$, APIC affine velocity matrix $\vect{C}_i\in\R^{3\times3}$, and constitutive state including elastic strain, plastic volume ratio, and stress.
+Given the planar position $\vect{p}_{xy}\in\R^2$ of a tracked body, the patch center $\vect{c}\in\R^2$ is
+\begin{equation}
+\vect{c}=\vect{o}+\delta\,\operatorname{round}
+\left((\vect{p}_{xy}-\vect{o})/\delta\right),
+\label{eq:center}
+\end{equation}
+where $\vect{o}\in\R^2$ is the environment origin and $\delta$ is the movement increment.
+Quantization with $\delta$ moves the patch in discrete increments, so particle reassignment occurs only when the tracked body crosses an increment boundary.
+The center is further clamped so that the patch remains inside the generated terrain.
+A band of pinned, zero-mass particles surrounds the dynamic interior and serves as the material boundary.
+The band spans at least two MPM voxels and is no narrower than $\delta$.
+The rigid support beneath the particles is distinct from both the terrain surface and this particle boundary.
+
+\noindent\textbf{Particle Recycling:}
+The patch maintains a fixed number of particle slots per environment.
+When the patch moves, slots that leave the patch are toroidally reassigned to the entering region and placed beneath the terrain surface at their new planar position.
+Particles that remain inside the patch retain their position, velocity, and constitutive state, whereas recycled particles are reinitialized as fresh material with zero velocity, zero APIC gradient, identity elastic strain, and zero stress.
+Since the slot count is fixed, the number of simulated particles per environment is independent of the traversed distance.
+However, recycling discards the deformation history of departed terrain, so the robot encounters fresh material when it revisits a region.
+
+\noindent\textbf{Particle Caching:}
+To preserve terrain history across revisits, the cached patch partitions the terrain into tiles and pages them into a bounded set of simulation slots.
+When a tile leaves the active region, the state of its particles is stored by environment and tile index, and the freed slots are assigned to entering tiles.
+The stored state comprises position, velocity, APIC gradient, elastic strain, plastic volume ratio, stress, deformation transform, mass, radius, and flags.
+A previously visited tile restores its stored state, and an unvisited tile is initialized from a pre-relaxed material template.
+Loading consumes the stored records, which prevents particle duplication and keeps excavated tiles empty.
+When multiple bodies are tracked, such as the robot and a pushed box, the active region is the union of tiles surrounding each body, and overlapping regions within an environment share particles.
+Cached particles are excluded from solver steps, and an episode reset clears the cache of the corresponding environment only.
+
+\noindent\textbf{Rigid-Body Coupling:}
+We integrate the simulation into IsaacLab~\cite{mittal2025isaaclab} through Newton~\cite{newton2025}.
+MuJoCo Warp~\cite{mjwarp2025} advances the whole-body dynamics of the robot and rigid objects, while implicit MPM advances the active material.
+At each coupling step, selected bodies, namely the robot feet and manipulated objects, enter MPM as lagged proxy colliders, and the resulting material reaction wrenches are applied in the rigid-body solver.
+Contacts between the robot and rigid objects, such as hand-box contact, remain in MuJoCo Warp.
+The proxy inertia is a coupling parameter and does not alter the physical body mass.
+The material reaction forces on the feet further provide contact observations and gait rewards for policy training.
+
+\subsection{Environment Design}
+\label{sec:env_design}
+We formulate each control task as a Markov decision process (MDP).
+At each timestep $t$, the agent receives an observation $\vect{o}_t$, samples an action $\vect{a}_t\sim\pi(\cdot|\vect{o}_t)$, and obtains a scalar reward $R_t$.
+The goal of the agent is to maximize the expected discounted return $\mathbb{E}_\pi[\sum_{t}\gamma^tR_t]$, where $\gamma\in[0,1)$ is the discount factor.
+We train all policies with an asymmetric actor-critic~\cite{pinto2018asymmetric}, where the critic additionally receives privileged simulation states that are unavailable on hardware.
+
+% STATUS: Franka task and PPO+DAgger for box pushing are not yet implemented (UR10 particle sweeping exists).
+\noindent\textbf{Franka Particle Pushing:}
+A Franka arm pushes granular material on a tabletop into a target region.
+The policy observes the joint states of the arm and a heightmap of the particle distribution, and the reward measures material transported into the target region while penalizing spilled material.
+
+\noindent\textbf{Humanoid Velocity Tracking:}
+The Unitree G1 humanoid robot tracks commanded planar linear velocity and yaw rate on granular terrain.
+The actor observes an $N$-step history of proprioception, including base angular velocity, projected gravity, joint positions and velocities, and previous actions, together with the velocity command.
+The critic additionally receives the base linear velocity, foot states, material reaction forces on the feet, and material parameters.
+The action $\vect{a}_t\in\R^{29}$ is the desired joint position offset from a nominal pose, which joint-level PD controllers track.
+Rewards combine velocity tracking with posture and control regularization, and with foot contact, gait, clearance, and slip terms.
+
+\noindent\textbf{Humanoid Box Pushing:}
+The Unitree G1 humanoid robot pushes a rigid box over granular terrain while tracking a commanded forward velocity.
+The policy additionally observes the box pose relative to the robot, and the reward combines base and box velocity tracking with hand pose targets attached to the box.
+The active material region covers the contacts of both the feet and the box.
+
+\noindent\textbf{Policy Training:}
+We train Franka particle pushing and humanoid velocity tracking with proximal policy optimization (PPO)~\cite{ppo}.
+For box pushing, we combine PPO with dataset aggregation (DAgger)~\cite{dagger}, where locomotion and manipulation experts label the states visited by a whole-body student policy.
+The student policy is optimized with
+\begin{equation}
+\mathcal{L}(\theta)=\mathcal{L}_{\mathrm{PPO}}(\theta)
++\lambda_k\,\mathbb{E}_{\vect{o}\sim\mathcal{D}_k}
+\left[\|\vect{\mu}_\theta(\vect{o})-\vect{a}_E(\vect{o})\|_2^2\right],
+\end{equation}
+where $\mathcal{D}_k$ is the aggregated dataset of expert-labeled observations at iteration $k$, $\vect{\mu}_\theta(\vect{o})$ is the mean action of the student policy, $\vect{a}_E(\vect{o})$ is the expert action, and $\lambda_k$ is the imitation weight scheduled over training.
+Both the actor and critic are separate three-layer MLPs with hidden sizes of (512, 256, 128) and ELU activations.
+Physics simulation runs at 200~Hz and the policy runs at 50~Hz.
+We train with \pending{$N_\mathrm{env}$} parallel environments on \pending{GPU} for \pending{$N_\mathrm{iter}$} iterations.
+
+\noindent\textbf{Reset and Randomization:}
+At episode reset, we restore the robot and object states and clear the terrain history of the corresponding environment only.
+We randomize material parameters, robot dynamics, and external disturbances within the ranges listed in \pending{Table}, and evaluate on a separate held-out range of material parameters.
+
+\subsection{Particle NeRD}
+\label{sec:particle_nerd}
+Particle NeRD replaces the MPM material update with learned particle dynamics, while MuJoCo Warp continues to integrate the rigid-body dynamics.
+It consists of a collider-conditioned Transolver~\cite{transolver} that predicts particle displacement and an analytical estimator that reconstructs the material reaction wrench on each rigid body.
+
+\noindent\textbf{Material Motion Prediction:}
+Given the particle position history $\mathcal{H}^n$ over the last three steps, material features $\vect{m}$, and collider states $\mathcal{B}^n$, the network $f_\phi$ predicts the displacement of each particle $i$ as
+\begin{equation}
+\Delta\widehat{\vect{x}}_i=f_\phi(\mathcal{H}^n,\vect{m},\mathcal{B}^n)_i,
+\qquad
+\widehat{\vect{u}}_i=\Delta\widehat{\vect{x}}_i/\Delta t,
+\end{equation}
+where $\Delta t$ is the prediction interval and $\widehat{\vect{u}}_i$ is the interval-averaged particle velocity.
+The material features comprise ten normalized constitutive parameters, including density, Young's modulus, Poisson ratio, friction, and yield parameters, together with particle mass, radius, timestep, and gravity.
+For each particle-collider pair, the collider features encode the signed distance, outward surface normal, relative surface velocity, and friction coefficient.
+Slice attention aggregates particle features into a fixed number of learned slice tokens, attends among these tokens, and broadcasts the result back to the particles, so its cost grows linearly with the number of particles.
+To further reduce cost, inference evaluates active particles selected near colliders together with weighted background samples that represent the remaining material, while the histories of all particles are retained.
+
+We train the network on coupled MPM and MuJoCo Warp trajectories.
+Starting from recorded particle states, the network recurrently feeds its own predictions over a 0.5~s window while the colliders follow their recorded trajectories.
+The training loss is a particle position loss that balances moving and nearly stationary particles, so that the static bed does not dominate the objective, and that additionally weights particles near collider surfaces.
+
+\noindent\textbf{Body Reaction Reconstruction:}
+The estimator extrapolates the predicted material velocity to collider surface points and solves for the contact impulses on each body.
+For contact $i$ with the normal pointing from the material into the body, the relative velocity is $\vect{r}_i=\vect{J}_i\vect{\nu}_b-\vect{C}_i\widehat{\vect{u}}+\vect{D}_i\vect{\lambda}_i$, where $\vect{\nu}_b$ is the body twist, $\vect{J}_i$ maps it to the contact-point velocity, $\vect{C}_i$ interpolates predicted particle velocities to the contact point, and $\vect{D}_i$ is an empirical material mobility with units of $\mathrm{kg}^{-1}$.
+The normal impulse $\lambda_{n,i}$ and tangential impulse $\vect{\lambda}_{t,i}$ satisfy
+\begin{equation}
+0\leq\lambda_{n,i}\ \perp\ r_{n,i}+b_i\geq0,
+\qquad \|\vect{\lambda}_{t,i}\|_2\leq\mu_i\lambda_{n,i},
+\end{equation}
+where $r_{n,i}$ is the normal component of $\vect{r}_i$, $b_i$ is a gap correction, and $\mu_i$ is the friction coefficient.
+Sticking contacts cancel tangential slip within the friction cone, whereas sliding contacts retain slip with friction at the cone boundary.
+Given the world-frame material-on-body impulses $\vect{j}_i$ at contact points $\vect{s}_i$, the wrench about the body center of mass $\vect{p}_b$ is
+\begin{equation}
+\vect{F}_b=\frac{1}{\Delta t}\sum_i\vect{j}_i,
+\qquad
+\vect{\tau}_b=\frac{1}{\Delta t}\sum_i
+(\vect{s}_i-\vect{p}_b)\times\vect{j}_i.
+\end{equation}
+MuJoCo Warp applies this wrench together with actuation, gravity, and rigid contacts.
+The auxiliary material response $\vect{D}_i$ enters only the estimator and is not applied back to the predicted particles.
+
+\noindent\textbf{Integration with Moving Patch:}
+Particle NeRD operates within the recycling patch of Sec.~\ref{sec:moving_patch} and performs no native MPM computation during initialization, reset, or recycling.
+Since the material features are constructed once per environment, we train and evaluate Particle NeRD on a single terrain type within the material-parameter range of its training data.

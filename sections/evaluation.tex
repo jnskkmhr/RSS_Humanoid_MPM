@@ -1,0 +1,69 @@
+% !TEX root = ../paper.tex
+% STATUS: No experiment below has been run. Protocols are written in final-paper tense.
+% Every red \pending{} marker is a result, number, or claim heading that must be replaced by measured evidence or removed.
+\section{Experimental Results}
+We evaluate the proposed framework in both simulation and real-world experiments.
+We first evaluate the simulation cost of moving-patch MPM against full-domain MPM and its ability to restore terrain deformation on revisits.
+We then examine whether MPM facilitates successful policies across multiple embodiments and tasks.
+Next, we analyze the contribution of MPM to locomotion policy performance by comparing policies trained on rigid, reduced-order, and MPM terrain.
+We then deploy the humanoid policies on physical granular terrain.
+Finally, we evaluate whether policies trained with Particle NeRD transfer to MPM and to hardware.
+
+\subsection{Simulation Evaluation}
+\noindent\textbf{Simulation Setup:}
+All simulation experiments run on \pending{GPU}.
+We use success rate (SR), velocity tracking error $e_v$, and yaw tracking error $e_\theta$ as metrics for humanoid locomotion.
+The success rate is the fraction of \pending{100} episodes that complete the commanded course.
+An episode fails if the base height falls below \pending{0.2}~m, if the roll or pitch magnitude exceeds \pending{$\pi/4$}~rad, or if the robot does not complete the course within \pending{10}~s.
+The tracking errors are the mean absolute errors between commanded and measured base velocity and yaw rate.
+Timing measurements include host-side tile paging and synchronization and exclude rendering and warm-up.
+
+\noindent\textbf{\pending{Moving patches bound simulation cost independently of traversed distance.}}
+We compare (1) full-domain MPM, (2) the recycling patch, and (3) the cached patch under matched material parameters, particle spacing, timestep, coupling, and robot trajectories.
+We vary the patch size, number of parallel environments, and traversed distance, and measure peak GPU memory and coupled physics throughput.
+We further compare the material reaction forces on the feet and the particle displacements near the robot against full-domain MPM, which serves as the numerical reference.
+\pending{Result and interpretation.}
+
+\noindent\textbf{\pending{Particle caching restores terrain deformation on revisits.}}
+The robot walks a closed trajectory that returns to its own footprints.
+We compare the terrain height and the reaction forces on the feet during the revisit among the recycling patch, the cached patch, and full-domain MPM.
+\pending{Result and interpretation.}
+
+\noindent\textbf{\pending{MPM facilitates successful policies across multiple embodiments and tasks.}}
+We train policies for all three tasks of Sec.~\ref{sec:env_design}.
+We evaluate Franka particle pushing by the fraction of material delivered to the target region and the spilled material, humanoid velocity tracking by SR, $e_v$, and $e_\theta$, and box pushing additionally by box velocity tracking and box tipping.
+\pending{Result and interpretation.}
+% TODO(figure): snapshots of the three tasks.
+
+\noindent\textbf{\pending{MPM training improves locomotion on granular terrain.}}
+To isolate the contribution of MPM, we compare locomotion policies trained on (1) rigid rough terrain in MuJoCo Warp (Rigid), (2) the 3D RFT contact model~\cite{gmloco} (RFT), (3) flat MPM terrain (MPM-Flat), and (4) rough MPM terrain (MPM-Rough).
+All policies share the robot asset, observations, rewards, and training budget, and are evaluated on MPM terrain with held-out material parameters.
+In addition to SR and tracking errors, we compare foot sinkage, gait timing, and pelvis acceleration to characterize the emergent gait.
+Since evaluation in MPM favors MPM-trained policies, the hardware experiments in Sec.~\ref{sec:hardware} provide an independent comparison.
+\pending{Result and interpretation.}
+
+\subsection{Hardware Experiments}
+\label{sec:hardware}
+We deploy the trained policies on a Unitree G1 humanoid robot.
+The policy outputs joint position targets at 50~Hz, which are sent to the low-level PD controller of the robot.
+We test the policies on \pending{granular terrain types and bed depth}.
+We consider an episode a failure if the robot fails to maintain an upright posture and requires human intervention.
+
+\noindent\textbf{\pending{Claim for humanoid walking on physical granular terrain.}}
+We compare Rigid, RFT, and MPM-Rough policies over commanded forward velocities of \pending{range}, with \pending{N} trials per command in randomized order.
+\pending{Result and interpretation.}
+
+\noindent\textbf{\pending{Claim for humanoid box pushing on physical granular terrain.}}
+We track the box pose with motion capture and report SR, base velocity tracking, and box velocity tracking over \pending{N} trials.
+\pending{Result and interpretation.}
+
+\subsection{Particle NeRD Evaluation}
+\noindent\textbf{\pending{Policies trained with Particle NeRD transfer to MPM.}}
+We train Particle NeRD on a single terrain type and train a locomotion policy within the same material-parameter range.
+We evaluate this policy in MPM with the same terrain type and material range, and compare it against a policy trained directly in MPM.
+We report training wall time to reach \pending{threshold} together with the cost of data generation and network training.
+Timing covers feature construction, network inference, contact reconstruction, rigid-body integration, and patch updates.
+\pending{Result and interpretation.}
+
+\noindent\textbf{\pending{Policies trained with Particle NeRD transfer to hardware.}}
+\pending{Result and interpretation.}

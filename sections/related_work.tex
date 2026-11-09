@@ -1,0 +1,30 @@
+% !TEX root = ../paper.tex
+\section{Related Work}
+% We review particle simulation of granular material, reinforcement learning on deformable terrain, and neural dynamics for accelerating physics simulation.
+
+\subsection{Particle Simulation}
+Simulating granular terrain for robot learning requires a representation that captures large deformation, flow, and persistent changes of the terrain surface.
+The discrete element method (DEM)~\cite{dem} explicitly models inter-grain interactions and offers high fidelity, but its computational cost restricts it to small-scale offline analysis.
+Vertex block descent (VBD)~\cite{vbd} efficiently integrates elastic deformable bodies with implicit time stepping, but it targets elastic rather than granular material.
+Material point method (MPM)~\cite{mpm} represents material with particles that carry history-dependent state and resolves deformation on a background grid.
+Affine particle-in-cell (APIC)~\cite{apic} transfers preserve local affine velocity between particles and grid, and Drucker-Prager elastoplasticity~\cite{sand} models the frictional yielding of sand.
+Mixed MPM~\cite{daviet2026mixedmpm} further enables implicit integration of stiff elastoplastic material with frictional rigid-body coupling.
+Nevertheless, MPM remains computationally expensive for large terrains, since its  cost grows with the terrain extent and the grid resolution needed to resolve the collider geometry, and for the thousands of parallel environments often used by efficient RL training.
+Unlike DEM and VBD, our approach builds on MPM, which captures diverse granular materials within a single constitutive framework, and we address its computational cost with a moving terrain patch that restricts the simulated domain to the region around the robot.
+
+\subsection{Reinforcement Learning on Deformable Terrain}
+Reduced-order contact models are a common alternative for fast and massively parallel policy training on deformable terrain.
+Jammed granular cone models~\cite{choi,luo2025mild} and resistive force theory (RFT)~\cite{rft,agarwal2023rft3d,gmloco} compute foot reaction forces from intrusion depth, velocity, and orientation, and have achieved successful sim-to-real transfer for quadrupedal and bipedal locomotion.
+However, they assume a prescribed terrain surface, so they do not capture displaced material or persistent terrain deformation.
+In contrast, MPM captures displaced material and plastic terrain deformation, and supports arbitrary terrain geometry, including rough terrain, without additional modeling.
+
+Prior works use particle simulation for deformable object and soil manipulation, including soft-body manipulation on a differentiable simulator in PlasticineLab~\cite{plasticine} and excavator soil manipulation on two-dimensional MPM that transfers to physical excavators~\cite{werner2026materialstate}.
+However, they are confined to a limited workspace and cannot simulate unbounded scenes.
+We remove this limitation with a moving terrain patch approach and train policies on MPM coupled to articulated robots.
+
+\subsection{Neural Robot Dynamics}
+Implicit numerical solvers require iterative optimization at every step, which limits simulation throughput as the number of degrees of freedom grows.
+Recent work circumvents this limitation by replacing numerical solvers with neural networks.
+Graph network simulators~\cite{gns} predict particle dynamics through message passing among neighboring particles, and Transolver~\cite{transolver} solves partial differential equations on general geometries through attention among learned spatial slices.
+For robotics, neural robot dynamics (NeRD)~\cite{nerd} learns articulated robot dynamics, and FlashNeRD~\cite{flashnerd} couples neural robot dynamics with analytically simulated objects for contact-rich tasks.
+Inspired by NeRD methods, we propose Particle NeRD that predicts particle displacement with a collider-conditioned Transolver and reconstructs the reaction wrench on each rigid body through a collider impulse solver and couples the wrench with the robot dynamics.
