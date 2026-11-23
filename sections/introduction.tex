@@ -1,11 +1,11 @@
 \section{Introduction}
-\junnosuke{Overall, discussion emhpasizes humanoid, but we add franka and most likely quadruped, so not sure if should emphasize humanoid.}
 Humanoid robots have demonstrated remarkable athletic skills such as parkour and running, as well as long-horizon dexterity in loco-manipulation and whole-body manipulation.
+\junnosuke{Probably, better to mention more general progress in robot learning rather than humanoid-specific progress.}
 These successes are largely attributed to fast and accurate physics simulation~\cite{makoviychuk2021isaacgym,mittal2025isaaclab} and large-scale reinforcement learning (RL)~\cite{zhang2026balanced}.
 However, the full potential of RL has yet to be realized in challenging outdoor environments such as sand, mud, and snow.
 Achieving reliable locomotion and manipulation on these types of terrain is crucial for field applications including planetary exploration, agriculture, and search and rescue.
-Although physics solvers for granular materials exist, robotics simulators lack the functionality required to train policies with them, particularly over unbounded scenes.
-Furthermore, numerical physics solvers have fundamental throughput limitations.
+Although granular physics is well studied, robotics simulators lack the functionality for policy learning on it: scalability to large terrains and many parallel environments, efficient environment reset, and domain randomization.
+Furthermore, granular physics solvers perform a compute-intensive optimization at every step, which fundamentally limits their throughput.
 Thus, achieving a general whole-body controller in the field is an open research question.
 \junnosuke{Make hook bit more concise.}
 
@@ -19,14 +19,15 @@ Although there are existing works that use the material point method (MPM) for p
 Tasks like locomotion have no such bound, since the robot traverses terrain far beyond any fixed workspace.
 Thus, merely simulating the entire terrain with MPM requires millions of particles across tens to hundreds of terrains, and this is computationally infeasible.
 
-We build our work on top of mixed MPM~\cite{daviet2026mixedmpm} for its ability to simulate diverse elastoplastic materials.
-We introduce streaming MPM, which simulates only the terrain around the robot and its interacting objects to scale MPM to large terrains.
+% We build our work on top of mixed MPM~\cite{daviet2026mixedmpm} for its ability to simulate diverse elastoplastic materials.
+% We introduce streaming MPM, which simulates only the terrain around the robot and its interacting objects to scale MPM to large terrains.
+To this end, we introduce streaming MPM, which is built upon mixed MPM~\cite{daviet2026mixedmpm} and simulates only the terrain around the target bodies to scale to large terrains.
 % \junnosuke{We probably need to talk about NeRD somewhere, but let me skip for now.}
 To further reduce simulation cost, we propose Particle NeRD, a neural surrogate model that predicts particle displacement from particle history and collider motion, and recovers the rigid-body reaction wrench analytically.
 
 In summary, our key contributions are: 
 \begin{itemize}
     \item A large-scale policy training framework for granular terrain, built on streaming MPM and Particle NeRD.
-    \item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we presents particle soil manipulation with Franka, humanoid locomotion with Unitree G1 humanoid, and humanoid object pushing.
-    \item Hardware deployment of the Unitree G1 humanoid robot for walking and object pushing on steep granular terrain.
+    \item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we present particle manipulation with a UR10 manipulator, legged locomotion with the Unitree Go2 quadruped and the Unitree G1 humanoid, and humanoid object towing.
+    \item Hardware deployment of the Unitree G1 humanoid robot for walking and object towing on steep granular terrain.
 \end{itemize}
