@@ -111,16 +111,31 @@ All contacts of the body are coupled through its twist
 where $\vect{u}_0$ is the contact-free twist, $\vect{M}$ is the spatial inertia of the body, and $\vect{J}_i$ is the contact Jacobian.
 The relative velocity at the contact is $\vect{r}_i=\vect{J}_i\vect{u}-\tilde{\vect{v}}_i+\vect{C}_i\vect{\lambda}_i$, where $\tilde{\vect{v}}_i$ is the predicted material velocity extrapolated to the contact point and $\vect{C}_i$ is the mobility of the material, which is the inverse of an effective mass that depends on the direction of the contact normal.
 With the residual $\vect{e}_i=\vect{r}_i+[b_i,0,0]^\top$, where $b_i$ is the gap-recovery speed, and the compliance $\vect{K}_i=\vect{J}_i\vect{M}^{-1}\vect{J}_i^\top+\vect{C}_i$, each iteration updates the impulse by solving the following nonlinear optimization:
-\begin{equation}
-    \begin{aligned}
-        \Delta\lambda_{i,n}^{*} &= \operatorname*{arg\,min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}\\
-        &\qquad \text{s.t.}\ \ \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0,\\
-        \Delta\vect{\lambda}_{i,t}^{*} &= \operatorname*{arg\,min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t}\\
-        &\qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}\\
-        &\qquad \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
-    \end{aligned}
+% \begin{equation}
+%     \begin{aligned}
+%         \Delta\lambda_{i,n}^{*} &= \operatorname*{arg\,min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}\\
+%         &\qquad \text{s.t.}\ \ \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0,\\
+%         \Delta\vect{\lambda}_{i,t}^{*} &= \operatorname*{arg\,min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t}\\
+%         &\qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}\\
+%         &\qquad \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
+%     \end{aligned}
+%     \label{eq:nerd_impulse}
+% \end{equation}
+
+\begin{subequations}
+    \begin{align}
+        \operatorname*{min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}
+        \\
+        \text{s.t.} \ 
+        \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0
+        \\
+        \operatorname*{min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t} \nonumber \\
+        \qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}
+        \\
+        \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
+    \end{align}
     \label{eq:nerd_impulse}
-\end{equation}
+\end{subequations}
 where $\Delta\lambda_{i,n}$ and $\Delta\vect{\lambda}_{i,t}$ are the normal and tangential impulse increments, the superscript $*$ denotes the optimal value, the subscripts $n$ and $t$ select the normal and tangential blocks, and $\mu_i$ is the friction coefficient.
 The normal problem closes the gap without attractive impulses, and the tangential problem, which uses the optimal normal increment, enforces Coulomb friction.
 We solve Eq.~\eqref{eq:nerd_impulse} for all contacts with Jacobi iterations, which add the optimal increments to the impulses and update the twist in Eq.~\eqref{eq:nerd_twist} after every sweep.
