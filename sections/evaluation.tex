@@ -1,76 +1,198 @@
 \section{Experimental Results}
-
-
+\label{sec:results}
+In this section, we present quantitative comparisons between our framework and baseline methods in simulation, as well as real-world deployment on the Unitree G1 humanoid.
+Specifically, we address the following key questions:
 \begin{itemize}
-    \item Q1: Does MPM generalizes to multiple robot embodiments and tasks?
-    \item Q2: Does MPM provide better sim2real performance than other contact solvers: rigid, VBD, and reduced-order soft contact models? 
-    \item Q3: Do we see difference in learned gait style ? 
-    \item Q4: Does neural solver transfer to MPM and Hardware ? 
+    \item \textbf{Q1:} Does streaming MPM bound the compute cost and memory usage as the terrain and the number of environments grow, while preserving terrain deformation?
+    \item \textbf{Q2:} Can policies be trained on streaming MPM across embodiments and tasks?
+    \item \textbf{Q3:} When does training on particle simulation help over training on rigid terrain or a reduced-order terrain model?
 \end{itemize}
 
+% A. Experimental Setup
+\subsection{Experimental Setup}
+\textbf{Simulation and Training Setup:}
+Our pipeline is built upon IsaacLab~\cite{mittal2025isaaclab}, with physics simulated at 200~Hz and policies operating at 50~Hz.
+During training, we use both the coupled MPM and MuJoCo Warp solver and MuJoCo Warp alone to expose the policy to both hard ground and granular terrain, which we found necessary to generalize the policy across various terrain conditions.
+We train the policies on NVIDIA L40S GPUs with the domain randomization of Sec.~\ref{sec:env_design}.
 
-We evaluate the proposed framework in both simulation and real-world experiments.
-We first evaluate the simulation cost of moving-patch MPM against full-domain MPM and its ability to restore terrain deformation on revisits.
-We then examine whether MPM facilitates successful policies across multiple embodiments and tasks.
-Next, we analyze the contribution of MPM to locomotion policy performance by comparing policies trained on rigid, reduced-order, and MPM terrain.
-We then deploy the humanoid policies on physical granular terrain.
-Finally, we evaluate whether policies trained with Particle NeRD transfer to MPM and to hardware.
+Unless stated otherwise, we evaluate the policies on flat and sloped terrain of MPM sand with a density of 1,800~kg/m$^3$, a friction coefficient of 0.8, and a depth of 0.25~m.
+For walking, we report the success rate (SR), which is the fraction of trials in which the robot reaches the goal without falling, and the velocity tracking error $e_v$, which is the mean absolute error between the commanded and measured base velocity.
+\junnosuke{
+    * Add terrain setup (terrain generator)
+}
 
+\textbf{Hardware Setup:}
+We deploy the trained policies on a Unitree G1 humanoid robot to validate our approach in the real world.
+The policy outputs joint position targets at 50~Hz, which are sent to the low-level PD controller of the robot.
+We test the policies on a granular testbed filled with regolith simulant, placed on a tiltable trailer that sets the slope angle.
+\junnosuke{TODO: simulant, testbed dimensions, and sand depth.}
+As in simulation, we report the success rate, and consider a trial a failure if the robot fails to maintain an upright posture and requires human intervention.
+
+% B. Simulation Evaluation
 \subsection{Simulation Evaluation}
-\noindent\textbf{Simulation Setup:}
-All simulation experiments run on \pending{GPU}.
-We use success rate (SR), velocity tracking error $e_v$, and yaw tracking error $e_\theta$ as metrics for humanoid locomotion.
-The success rate is the fraction of \pending{100} episodes that complete the commanded course.
-An episode fails if the base height falls below \pending{0.2}~m, if the roll or pitch magnitude exceeds \pending{$\pi/4$}~rad, or if the robot does not complete the course within \pending{10}~s.
-The tracking errors are the mean absolute errors between commanded and measured base velocity and yaw rate.
+
+% B-1. Compute Efficiency of Streaming MPM
+\subsubsection{Compute Efficiency of Streaming MPM}
+To answer Q1, we benchmark the terrain representation with a rigid box ($0.2\times0.2\times0.1$~m, 10~kg) that a gantry drives along prescribed trajectories, in loose poppy seed with a voxel size of 0.03~m, on one RTX~5090 with one run per configuration.
+On the sparse grid, which stores only the cells that contain particles, we compare MPM full (Full-sparse), streaming without the tile cache (Stream), and streaming with it (Stream+cache), each with sleeping off (solid lines in Fig.~\ref{fig:t1_cost}) and on (dashed lines); MPM full uses a different collider setup from the streaming modes.
+We also run MPM full with sleeping off on the dense grid (Full-dense), a regular box of cells over the bounding box of the particles that is recomputed every step, and on the fixed grid (Full-fixed), where this box is built once; sleeping is available only with the sparse grid.
 Timing measurements include host-side tile paging and synchronization and exclude rendering and warm-up.
 
-\noindent\textbf{\pending{Moving patches bound simulation cost independently of traversed distance.}}
-We compare (1) full-domain MPM, (2) the recycling patch, and (3) the cached patch under matched material parameters, particle spacing, timestep, coupling, and robot trajectories.
-We vary the patch size, number of parallel environments, and traversed distance, and measure peak GPU memory and coupled physics throughput.
-We further compare the material reaction forces on the feet and the particle displacements near the robot against full-domain MPM, which serves as the numerical reference.
-\pending{Result and interpretation.}
+% scaling to terrain size
+\textbf{Streaming MPM bounds the compute cost and memory usage as the terrain grows.}
+We drag the box along a corridor 1.6~m wide in one environment and grow the corridor length from 3.2~m to 102.4~m (Fig.~\ref{fig:t1_cost}, top).
+The memory and step time of Stream do not grow with the length, and Stream+cache grows only by its saved sand.
+Full-sparse grows with the terrain, and at 102.4~m it uses 15 times the memory and 18 times the step time of Stream.
+Sleeping roughly halves the step time of Full-sparse on long terrain at a higher memory cost, and brings no gain to the streaming modes.
 
-\noindent\textbf{\pending{Particle caching restores terrain deformation on revisits.}}
-The robot walks a closed trajectory that returns to its own footprints.
-We compare the terrain height and the reaction forces on the feet during the revisit among the recycling patch, the cached patch, and full-domain MPM.
-\pending{Result and interpretation.}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/t1_cost_learning.pdf}
+    \vspace{-7mm}
+    \caption{
+        \textbf{Simulation cost and learning speed.}
+        Peak GPU memory usage and step time against the terrain length (top) and, per environment, against the number of environments (middle).
+        Success rate of G1 training against wall-clock time and environment samples (bottom).
+    }
+    \label{fig:t1_cost}
+    \vspace{-3mm}
+\end{figure}
 
-\noindent\textbf{\pending{MPM facilitates successful policies across multiple embodiments and tasks.}}
-We train policies for all three tasks of Sec.~\ref{sec:env_design}.
-We evaluate Franka particle pushing by the fraction of material delivered to the target region and the spilled material, humanoid velocity tracking by SR, $e_v$, and $e_\theta$, and box pushing additionally by box velocity tracking and box tipping.
-\pending{Result and interpretation.}
-% TODO(figure): snapshots of the three tasks.
+% scaling to num_env
+\textbf{Streaming MPM achieves a lower step time per environment as the number of parallel environments grows.}
+Each environment holds $8\times8$~m of terrain, and we double the number of environments until a run fails, so each line in Fig.~\ref{fig:t1_cost} (middle) ends at the largest count that ran.
+The streaming modes run 64 environments on one GPU at 5 to 6~ms per step and environment, whereas MPM full runs 4 at 126~ms.
+This throughput yields faster policy learning in wall-clock time (Fig.~\ref{fig:t1_cost}, bottom).
+We train a G1 walking policy on 16 L40S GPUs with 12 environments per GPU, once with Stream+cache and once with Full-fixed, from the same starting policy.
+The success rate, defined here as the mean episode length divided by the full episode length and averaged over the previous 20~minutes (thick lines), reaches 0.9 in 0.7~h with streaming against 8.0~h with MPM full, for a similar number of samples.
+Each curve is one seed, and Full-fixed uses its own task setup, which differs from the streaming task in more than terrain management.
 
-\noindent\textbf{\pending{MPM training improves locomotion on granular terrain.}}
-To isolate the contribution of MPM, we compare locomotion policies trained on (1) rigid rough terrain in MuJoCo Warp (Rigid), (2) the 3D RFT contact model~\cite{gmloco} (RFT), (3) flat MPM terrain (MPM-Flat), and (4) rough MPM terrain (MPM-Rough).
-All policies share the robot asset, observations, rewards, and training budget, and are evaluated on MPM terrain with held-out material parameters.
-In addition to SR and tracking errors, we compare foot sinkage, gait timing, and pelvis acceleration to characterize the emergent gait.
-Since evaluation in MPM favors MPM-trained policies, the hardware experiments in Sec.~\ref{sec:hardware} provide an independent comparison.
-\pending{Result and interpretation.}
+% terrain deformation
+\textbf{Streaming MPM preserves terrain deformation with the tile cache.}
+We drag the box along a lemniscate for two laps with sleeping off, so that the track of the first lap leaves the pool and re-enters it (Fig.~\ref{fig:t1_history}, shown within 0.5~m of the path).
+With the cache, the height of the revisited track differs from MPM full by 0.96~cm rms, which is the level of a repeated MPM full run (0.83~cm), whereas without the cache the track is lost (median difference of 4.97~cm).
+% FORCES: sentence form; these two sentences are the only place the forces appear.
+The drag on the revisited lap is $-26.7$~N for MPM full, $-29.4$~N with the cache, and $-54.3$~N without it.
+The cache thus reproduces the drop in drag on revisit to within 10\%, whereas without it there is no drop.
+When the G1 humanoid walks the same path, its footprints are kept with the cache and lost without it.
+This result holds with sleeping off: with sleeping on, the drag with the cache is 31\% lower than MPM full on fresh sand and 17\% lower on the revisited lap.
+On the first lap, both streaming modes give 8 to 16\% lower drag than MPM full, and in these runs fresh tiles are initialized without the template.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/t1_history.pdf}
+    \vspace{-7mm}
+    \caption{
+        \textbf{Terrain history.}
+        Terrain height after the second lap of the box, relative to the settled surface of each mode.
+    }
+    \label{fig:t1_history}
+    \vspace{-3mm}
+\end{figure}
+
+% B-2. Reinforcement Learning across Embodiments and Tasks
+\subsubsection{Reinforcement Learning across Embodiments and Tasks}
+To answer Q2, we train one policy for each embodiment and task of Sec.~\ref{sec:env_design}.
+\junnosuke{TODO: G1 walking (the policy is being retrained), Go2 walking, and UR10 particle pushing (from Max).}
+For G1 object towing, the robot tows a 15~kg cube over MPM sand under forward commands of 0.5 and 1.0~m/s, with 16 trials of 20~s per command.
+The robot does not fall in any trial, and the forward velocity error is $0.075\pm0.009$~m/s at 0.5~m/s and $0.176\pm0.009$~m/s at 1.0~m/s.
+This towing policy is an early checkpoint and is tested with forward commands only.
+
+
+% C. Ablations
+\subsection{Baseline Methods and Ablation Studies}
+To answer Q3, we compare three G1 walking policies that differ in the terrain model used for training: rigid rough terrain in MuJoCo Warp with standard friction randomization (MJWarp), rough terrain with the 3D RFT contact model~\cite{gmloco} (RFT), and rough terrain in streaming MPM (MPM).
+The three policies share the robot, observations, network architecture, PPO settings, and reward terms and weights.
+They differ in the number of environments per training process, the mirror loss (used for MJWarp and RFT only), the contact signal behind the gait rewards, the ground reference of the foot-clearance reward, and the ground randomization.
+We evaluate the three policies on MPM sand.
+Since this favors the policy trained in MPM, the hardware experiments in Sec.~\ref{sec:hardware} are the deciding comparison.
+\junnosuke{TODO: every number in this subsection comes from an earlier MPM policy and is replaced once the retrained policy is evaluated.}
+
+% C-1. Generalization to Steeper Slopes
+\subsubsection{Generalization to Steeper Slopes}
+We sweep an uphill sand slope from $0^\circ$ to $30^\circ$ at a commanded speed of 1.0~m/s with 10 trials per angle, where slopes up to $21.8^\circ$ are seen in training (Fig.~\ref{fig:t3_slope}).
+All three policies reach every goal on flat ground and on slopes up to $15^\circ$, and a gap opens from $20^\circ$: at $30^\circ$, MJWarp reaches 6 and RFT 4 of 10 goals, whereas MPM still reaches all 10.
+The MPM policy also keeps the lowest velocity tracking error on steep slopes.
+The MJWarp policy shows the highest foot velocity during contact, which indicates foot slip, and the shortest step time, whereas the MPM policy keeps the longest step time up to $20^\circ$.
+\junnosuke{TODO: downhill is left out. The current MPM policy tracks worst there (it overspeeds); revisit after retraining. Also sideways, diagonal, and circular walking on slopes.}
+
+\begin{figure}[t]
+    \centering
+    \figureortodo{figures/t3_slope.pdf}
+    \caption{
+        \textbf{Generalization to steeper slopes.}
+        Success rate, velocity tracking error, foot velocity during contact, and step time against the uphill slope angle on MPM sand, over successful trials.
+        Grey: slopes seen in training.
+    }
+    \label{fig:t3_slope}
+    \vspace{-3mm}
+\end{figure}
+
+% C-2. Generalization to Out-of-Distribution Materials
+\subsubsection{Generalization to Out-of-Distribution Materials}
+We evaluate the policies on flat ground over a grid of sand densities and frictions that extends beyond the training range of the MPM policy, down to a friction of 0.1 and a density of 250~kg/m$^3$ (Fig.~\ref{fig:t3_material}), and on rigid ground as the hard end of the material axis.
+All three policies reach the goal on rigid ground and in all 210 trials of the grid, so they differ in tracking error and gait, not in success.
+The velocity error grows as the sand friction falls below the training range, most for MJWarp.
+The MPM policy has the lowest error over most of the grid, but not everywhere: MJWarp matches it at high friction, and RFT tracks better at the lowest friction and the highest densities.
+From rigid ground to sand, the baselines shorten their steps, whereas the MPM policy keeps a similar step time.
+\junnosuke{TODO: soft materials beyond sand (snow-like and sticky ground), in simulation only.}
+
+\begin{figure}[t]
+    \centering
+    \figureortodo{figures/t3_material.pdf}
+    \caption{
+        \textbf{Generalization to out-of-distribution materials.}
+        Evaluated sands with the training range of the MPM policy (left), and velocity tracking error and step time of each policy over the density-friction grid, with the training range outlined in white (right).
+        }
+    \label{fig:t3_material}
+    \vspace{-3mm}
+\end{figure}
+
+% C-3. Generalization to Whole-Body Object Interaction
+\subsubsection{Whole-Body Object Interaction}
+Object towing involves terrain deformation that a rigid or reduced-order terrain model does not capture: the towed cube sinks into the sand and ploughs it.
+When a level 15~kg cube is dragged through MPM sand at constant speed, the drag force grows as displaced sand piles up in front of the cube, and is lower on the way back through its own track (Fig.~\ref{fig:t3_tow}, right).
+A contact model that computes the force from depth and velocity alone, such as RFT, cannot produce a force that changes at constant depth and speed.
+We compare towing policies trained with the same recipe on rigid ground only, on rigid ground and RFT, and on rigid ground and MPM, each towing a 15~kg cube over 10~m with 16 trials per condition.
+Towing on MPM sand requires about twice the pull of rigid ground and about 1.6 times that of RFT sand with the same density and friction (Fig.~\ref{fig:t3_tow}, left and middle).
+The policy trained on MPM supplies this force and reaches every goal on MPM sand, whereas the policies trained on rigid ground and on RFT reach none.
+These two policies, however, also fall on MPM sand with the tether cut, so their failure is a walking failure and does not show that they lack the pulling force.
+On RFT sand, the RFT-trained policy reaches every goal and the MPM-trained policy reaches fewer at the lower speed.
+Crossing its own track during towing lowers the force on the cube by about 6\%.
+
+% \begin{figure}[t]
+%     \centering
+%     \figureortodo{figures/t3_tow.pdf}
+%     \caption{
+%         \textbf{Object towing.}
+%         Horizontal ground force on the cube (left) and tether tension (middle) when the MPM-trained policy tows the cube at 1.0~m/s.
+%         Right: a separate test, in which a level cube that cannot tilt is dragged out (solid) and back through its own track (dashed) in a narrow and a wide bed of MPM sand; these are ploughing forces in kN, not towing forces, and the first 1.5~m of each pass include the cube sinking to its dragging depth.
+%     }
+%     \label{fig:t3_tow}
+%     \vspace{-5mm}
+% \end{figure}
+
+
+% D. Particle NeRD
+\subsection{Particle NeRD}
+\junnosuke{TODO: evaluation on an elementary object simulation benchmark, sim-to-sim transfer, and sim-to-real transfer.}
+
+
+% E. Hardware Experiments
 \subsection{Hardware Experiments}
 \label{sec:hardware}
-We deploy the trained policies on a Unitree G1 humanoid robot.
-The policy outputs joint position targets at 50~Hz, which are sent to the low-level PD controller of the robot.
-We test the policies on \pending{granular terrain types and bed depth}.
-We consider an episode a failure if the robot fails to maintain an upright posture and requires human intervention.
+% Hardware observations: reported by Junnosuke, recorded in outputs/T3.md item 4; unchecked.
+All three walking policies traverse the flat testbed and a $10^\circ$ slope without failure (Fig.~\ref{fig:hw_walking}).
+These conditions therefore do not separate the policies, which agrees with the simulated slope sweep, where the policies differ in success only from $20^\circ$ (Fig.~\ref{fig:t3_slope}).
+The policies do differ in gait, as their step times show.
+\junnosuke{TODO: number of trials per policy, a steeper slope of about $20^\circ$, and object towing on hardware.}
 
-\noindent\textbf{\pending{Claim for humanoid walking on physical granular terrain.}}
-We compare Rigid, RFT, and MPM-Rough policies over commanded forward velocities of \pending{range}, with \pending{N} trials per command in randomized order.
-\pending{Result and interpretation.}
-
-\noindent\textbf{\pending{Claim for humanoid box pushing on physical granular terrain.}}
-We track the box pose with motion capture and report SR, base velocity tracking, and box velocity tracking over \pending{N} trials.
-\pending{Result and interpretation.}
-
-\subsection{Particle NeRD Evaluation}
-\noindent\textbf{\pending{Policies trained with Particle NeRD transfer to MPM.}}
-We train Particle NeRD on a single terrain type and train a locomotion policy within the same material-parameter range.
-We evaluate this policy in MPM with the same terrain type and material range, and compare it against a policy trained directly in MPM.
-We report training wall time to reach \pending{threshold} together with the cost of data generation and network training.
-Timing covers feature construction, network inference, contact reconstruction, rigid-body integration, and patch updates.
-\pending{Result and interpretation.}
-
-\noindent\textbf{\pending{Policies trained with Particle NeRD transfer to hardware.}}
-\pending{Result and interpretation.}
+% \begin{figure}[t]
+%     \centering
+%     \figureortodo{figures/hw_walking.pdf}
+%     \caption{
+%         \textbf{Hardware experiments.}
+%         The Unitree G1 on the granular testbed, and the step time of each policy on flat ground and on a $10^\circ$ slope.
+%     }
+%     \label{fig:hw_walking}
+% \end{figure}

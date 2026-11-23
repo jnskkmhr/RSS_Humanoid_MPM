@@ -1,4 +1,3 @@
-% !TEX root = ../paper.tex
 \section{Introduction}
 \junnosuke{Overall, discussion emhpasizes humanoid, but we add franka and most likely quadruped, so not sure if should emphasize humanoid.}
 Humanoid robots have demonstrated remarkable athletic skills such as parkour and running, as well as long-horizon dexterity in loco-manipulation and whole-body manipulation.
@@ -8,25 +7,26 @@ Achieving reliable locomotion and manipulation on these types of terrain is cruc
 Although physics solvers for granular materials exist, robotics simulators lack the functionality required to train policies with them, particularly over unbounded scenes.
 Furthermore, numerical physics solvers have fundamental throughput limitations.
 Thus, achieving a general whole-body controller in the field is an open research question.
+\junnosuke{Make hook bit more concise.}
 
-Existing works leverage reduced-order force models~\cite{} and particle methods~\cite{} to simulate terrain-robot interactions.
+Existing works leverage reduced-order force models~\cite{rft,agarwal2023rft3d,choi,luo2025mild,gmloco} and particle methods~\cite{mpm,dem,vbd,apic} to simulate terrain-robot interactions.
 % lack functionality for policy training
-In particular, particle-based simulation can capture plastic deformation and granular material flow, but state-of-the-art robotics simulators lack support for policy training on particles.
+In particular, particle-based simulation captures plastic deformation and granular material flow, but state-of-the-art robotics simulators lack support for policy training on particles.
 In these simulators, coupling between particle solvers and rigid-body dynamics is not fully explored, and efficient reset of particle states across parallel environments is not supported.
 % numerical solver throughput issue
 Moreover, the cost of each numerical material update grows with terrain volume, spatial resolution, and solver iterations.
-Although existing work uses the material point method (MPM) for policy training~\cite{werner2026materialstate}, its excavation task is confined to a small workspace, which in turn limits the simulation cost.
-Legged locomotion has no such bound, since the robot traverses terrain far beyond any fixed workspace.
-Thus, naively simulating the entire terrain with MPM requires millions of particles across tens to hundreds of terrains, which is computationally infeasible.
+Although there are existing works that use the material point method (MPM) for policy training~\cite{werner2026materialstate}, its workspace is confined to a small region, which in turn limits the simulation cost.
+Tasks like locomotion have no such bound, since the robot traverses terrain far beyond any fixed workspace.
+Thus, merely simulating the entire terrain with MPM requires millions of particles across tens to hundreds of terrains, and this is computationally infeasible.
 
 We build our work on top of mixed MPM~\cite{daviet2026mixedmpm} for its ability to simulate diverse elastoplastic materials.
-To scale MPM to large terrains, we introduce moving terrain patch MPM, which simulates only a terrain patch around the robot and its interacting objects.
-\junnosuke{We probably need to talk about NeRD somwhere, but let me skip for now.}
+We introduce streaming MPM, which simulates only the terrain around the robot and its interacting objects to scale MPM to large terrains.
+% \junnosuke{We probably need to talk about NeRD somewhere, but let me skip for now.}
 To further reduce simulation cost, we propose Particle NeRD, a neural surrogate model that predicts particle displacement from particle history and collider motion, and recovers the rigid-body reaction wrench analytically.
 
 In summary, our key contributions are: 
 \begin{itemize}
-\item A large-scale policy training framework for granular terrain, built on moving terrain patch MPM and Particle NeRD.
-\item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we presents particle soil manipulation with Franka, humanoid locomotion with Unitree G1 humanoid, and humanoid box loco-manipulation.
-\item Hardware deployment of the Unitree G1 humanoid robot for walking and box pushing on physical granular terrain.
+    \item A large-scale policy training framework for granular terrain, built on streaming MPM and Particle NeRD.
+    \item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we presents particle soil manipulation with Franka, humanoid locomotion with Unitree G1 humanoid, and humanoid object pushing.
+    \item Hardware deployment of the Unitree G1 humanoid robot for walking and object pushing on steep granular terrain.
 \end{itemize}

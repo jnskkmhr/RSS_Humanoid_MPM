@@ -9,6 +9,26 @@
 % ---------------------------------------------------------------- Drafting
 % Red placeholder for results, numbers, and claims that still need measured evidence.
 \newcommand{\pending}[1]{\textcolor{red}{[#1]}}
+% Brown marker for numbers taken from an unchecked task output. Each one must be replaced by a checked value from FINAL.md.
+\newcommand{\unchecked}[1]{\textcolor{brown}{#1}}
+
+% ---------------------------------------------------------------- Figures
+% Shows a figure once its file exists, and a TODO box until then. #1: extra \includegraphics options, #2: file.
+% Requires graphicx (loaded in paper.tex).
+\newcommand{\figureortodo}[2][]{%
+  \IfFileExists{#2}%
+    {\includegraphics[width=\linewidth,#1]{#2}}%
+    {\fbox{\parbox[c][2.0cm][c]{0.95\linewidth}{\centering\junnosuke{TODO: figure \texttt{\detokenize{#2}}}}}}%
+}
+
+% ---------------------------------------------------------------- Headings
+% Sub-subsections: numbered B-1, B-2, C-1, ... (no parenthesis, no colon), with the title on its own line and without indent.
+% The positive skip after the title makes it a display heading, so the text starts on a new line with the usual paragraph indent.
+\renewcommand{\thesubsubsectiondis}{\Alph{subsection}-\arabic{subsubsection}}
+\makeatletter
+\def\subsubsection{\@startsection{subsubsection}{3}{\z@}{0.8ex plus 0.5ex minus 0.2ex}%
+{0.3ex plus 0.2ex minus 0ex}{\normalfont\normalsize\itshape}}
+\makeatother
 
 % ---------------------------------------------------------------- Revision
 \newcommand{\revision}[1]{\textcolor{teal}{\%#1}}
