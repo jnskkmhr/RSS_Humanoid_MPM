@@ -67,6 +67,13 @@ We train a G1 walking policy on 16 L40S GPUs with 12 environments per GPU, once 
 The success rate, defined here as the mean episode length divided by the full episode length and averaged over the previous 20~minutes (thick lines), reaches 0.9 in 0.7~h with streaming against 8.0~h with MPM full, for a similar number of samples.
 Each curve is one seed, and Full-fixed uses its own task setup, which differs from the streaming task in more than terrain management.
 
+\junnosuke{
+    \begin{itemize}
+        \item remove fig1's learning curve figure and replace with a sentence to save space.
+        \item we can also show exavator example to sell to manipulation people. we might skip this for initial submission.
+    \end{itemize}
+}
+
 % terrain deformation
 \textbf{Streaming MPM preserves terrain deformation with the tile cache.}
 We drag the box along a lemniscate for two laps with sleeping off, so that the track of the first lap leaves the pool and re-enters it (Fig.~\ref{fig:t1_history}, shown within 0.5~m of the path).
@@ -90,6 +97,12 @@ On the first lap, both streaming modes give 8 to 16\% lower drag than MPM full, 
     \vspace{-3mm}
 \end{figure}
 
+\junnosuke{
+* if we want to show deformation as sub-
+* would include this section if we actually have policy task when terrain deformation actually matter. 
+* delete or come up with better way to present (include fig1 to method section)
+}
+
 % B-2. Reinforcement Learning across Embodiments and Tasks
 \subsubsection{Reinforcement Learning across Embodiments and Tasks}
 To answer Q2, we train one policy for each embodiment and task of Sec.~\ref{sec:env_design}.
@@ -97,6 +110,18 @@ To answer Q2, we train one policy for each embodiment and task of Sec.~\ref{sec:
 For G1 object towing, the robot tows a 15~kg cube over MPM sand under forward commands of 0.5 and 1.0~m/s, with 16 trials of 20~s per command.
 The robot does not fall in any trial, and the forward velocity error is $0.075\pm0.009$~m/s at 0.5~m/s and $0.176\pm0.009$~m/s at 1.0~m/s.
 This towing policy is an early checkpoint and is tested with forward commands only.
+
+\junnosuke{
+* Benefit of using MPM
+* 1. How much fidelity do we get out of MPM ? is MPM reasonably accurate compared to other models (DEM etc) ? Speed
+-> why MPM matters, how is MPM useful ? 
+-> drag object around
+* 2. Is MPM useful for training ?
+* 3. Generalization to diverse task
+* Move this section to after C and merge with hardware experiment
+* Make TODO section for Max
+* We might find another task 
+}
 
 
 % C. Ablations
