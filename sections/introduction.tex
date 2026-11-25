@@ -26,8 +26,25 @@ To this end, we introduce streaming MPM, which is built upon mixed MPM~\cite{dav
 To further reduce simulation cost, we propose Particle NeRD, a neural surrogate model that predicts particle displacement from particle history and collider motion, and recovers the rigid-body reaction wrench analytically.
 
 In summary, our key contributions are: 
+% \begin{itemize}
+%     \item A large-scale policy training framework for granular terrain, built on streaming MPM and Particle NeRD.
+%     \item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we present particle manipulation with a UR10 manipulator, legged locomotion with the Unitree Go2 quadruped and the Unitree G1 humanoid, and humanoid object towing.
+%     \item Hardware deployment of the Unitree G1 humanoid robot for walking and object towing on steep granular terrain.
+% \end{itemize}
+
 \begin{itemize}
-    \item A large-scale policy training framework for granular terrain, built on streaming MPM and Particle NeRD.
-    \item Demonstration of policy learning on MPM across multiple embodiments and tasks. Particularly, we present particle manipulation with a UR10 manipulator, legged locomotion with the Unitree Go2 quadruped and the Unitree G1 humanoid, and humanoid object towing.
-    \item Hardware deployment of the Unitree G1 humanoid robot for walking and object towing on steep granular terrain.
+    \item Streaming mechanism which scales MPM to unbounded terrain and larger parallel environments.
+    \item Particle neural robot dynamics (particle NeRD) which further speeds up physics simulation X times.
+    \item Reinforcement learning across multiple embodiments and tasks and hardware deployment. Particularly, we present particle manipulation with a UR10 manipulator, legged locomotion with the Unitree Go2 quadruped and the Unitree G1 humanoid, and humanoid object towing.
 \end{itemize}
+
+\junnosuke{
+    contribution change.
+    \begin{itemize}
+        \item merge second (RL) and third contributions (hardware) into one.
+        \item split MPM and particle NeRD into two bullets. 
+        \item 1st point is MPM: how we scale MPM to unbounded scene.
+        \item 2nd point is particle NeRD: we further speed up X times 
+        \item 3rd point is about showing this whole pipeline works for many robot examples, and hardware deployment.
+    \end{itemize}
+}
