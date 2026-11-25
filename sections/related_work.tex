@@ -16,14 +16,13 @@ Reduced-order contact models are a common alternative for fast and massively par
 Jammed granular cone models~\cite{choi,luo2025mild} and resistive force theory (RFT)~\cite{rft,agarwal2023rft3d,gmloco} compute foot reaction forces from intrusion depth, velocity, and orientation, and have achieved successful sim-to-real transfer for quadrupedal and bipedal locomotion.
 However, they assume a prescribed terrain surface, so they do not capture displaced material or persistent terrain deformation.
 In contrast, MPM captures displaced material and plastic terrain deformation, and supports arbitrary terrain geometry, including rough terrain, without additional modeling.
-
 Prior works use particle simulation for deformable object and soil manipulation, including soft-body manipulation on a differentiable simulator in PlasticineLab~\cite{plasticine} and excavator soil manipulation on two-dimensional MPM that transfers to physical excavators~\cite{werner2026materialstate}.
 However, they are confined to a limited workspace and cannot simulate unbounded scenes.
 We remove this limitation with streaming MPM and train policies on MPM coupled to articulated robots.
 
-\subsection{Neural Robot Dynamics}
-Implicit numerical solvers require iterative optimization at every step, which limits simulation throughput as the number of degrees of freedom grows.
-Recent work circumvents this limitation by replacing numerical solvers with neural networks.
-Graph network simulators~\cite{gns} predict particle dynamics through message passing among neighboring particles, and Transolver~\cite{transolver} solves partial differential equations on general geometries through attention among learned spatial slices.
-For robotics, neural robot dynamics (NeRD)~\cite{nerd} learns articulated robot dynamics, and FlashNeRD~\cite{flashnerd} couples neural robot dynamics with analytically simulated objects for contact-rich tasks.
-Inspired by NeRD methods, we propose Particle NeRD that predicts particle displacement with a collider-conditioned Transolver and reconstructs the reaction wrench on each rigid body through a collider impulse solver and couples the wrench with the robot dynamics.
+% \subsection{Neural Robot Dynamics}
+% Implicit numerical solvers require iterative optimization at every step, which limits simulation throughput as the number of degrees of freedom grows.
+% Recent work circumvents this limitation by replacing numerical solvers with neural networks.
+% Graph network simulators~\cite{gns} predict particle dynamics through message passing among neighboring particles, and Transolver~\cite{transolver} solves partial differential equations on general geometries through attention among learned spatial slices.
+% For robotics, neural robot dynamics (NeRD)~\cite{nerd} learns articulated robot dynamics, and FlashNeRD~\cite{flashnerd} couples neural robot dynamics with analytically simulated objects for contact-rich tasks.
+% Inspired by NeRD methods, we propose Particle NeRD that predicts particle displacement with a collider-conditioned Transolver and reconstructs the reaction wrench on each rigid body through a collider impulse solver and couples the wrench with the robot dynamics.

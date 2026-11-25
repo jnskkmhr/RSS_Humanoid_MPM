@@ -21,7 +21,7 @@ The tile cache and adaptive particle activation address these choices, respectiv
 \textbf{Tile Cache:}
 The tile cache decides how the particles that leave the moving pool are recycled.
 With the cache disabled, we spawn fresh particles whenever a tile enters the pool, so this mode cannot simulate permanent terrain deformation.
-With the cache enabled, we save the state of each particle in a leaving tile and restore it when the tile re-enters the pool, so memory grows only with the sand saved for visited tiles.
+With the cache enabled, we save the state of each particle in a leaving tile and restore it when the tile re-enters the pool, so memory grows only with the sand saved for visited tiles and the terrain deformation is kept on revisits (Fig.~\ref{fig:t1_history}).
 Fresh particles without a saved state are initialized from a template, which we precompute by running a short simulation that settles the particles and saving their final states.
 
 \textbf{Adaptive Particle Activation:}
@@ -36,6 +36,19 @@ We use lagged proxy coupling, in which selected bodies, such as the robot feet a
 In each physics step, MuJoCo Warp first computes the body states under the contact wrenches from the previous MPM solution.
 MPM then advances the particles in contact with the proxy colliders.
 This step returns the new particle states and the contact wrench on each body, which MuJoCo Warp applies in the next physics step.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/t1_history.pdf}
+    \vspace{-7mm}
+    \caption{
+        \textbf{Terrain history.}
+        Terrain height after the second lap of the box, relative to the settled surface of each mode, with sleeping off.
+    }
+    \label{fig:t1_history}
+    \vspace{-3mm}
+\end{figure}
 
 % B. RL tasks
 \subsection{Reinforcement Learning on Granular Terrain}
@@ -67,73 +80,71 @@ Both the actor and the critic have the same observation and action spaces as in 
 For efficient exploration, we apply a success-driven object mass curriculum, in which the mass increases with the success rate of the current policy.
 
 % C. Particle NeRD
-% Source for this subsection: IsaacLab-particle-nerd/docs/_build/particle_nerd_local_methodology.pdf (2026-11-15): Eqs. (19), (20) for the particle update, Eqs. (31) to (33) for the impulse solver, Sec. 7 for training.
-% Checked against the code by the T5 session on 2026-11-22 (context repo, outputs/T5.md, "Method facts for the paper"). It describes the local model; the checkpoint for the paper is not decided yet (planned for 2026-11-24).
 \subsection{Particle NeRD}
-\junnosuke{WIP}
-\label{sec:particle_nerd}
-Streaming MPM makes the simulation cost independent of the terrain size, which leaves the numerical solve for the particles in the pool as the remaining cost of each physics step.
-To reduce this per-step cost and further accelerate policy training, we introduce Particle NeRD, a learned neural surrogate of MPM.
-Our key design choice is to replace only the one-way coupled MPM with a neural surrogate, while keeping the rigid-body dynamics solver and the solver coupling interface.
-Particle NeRD consists of (1) a particle motion prediction network, which combines a local neighborhood encoder with a collider-conditioned Transolver~\cite{transolver}, and (2) a particle impulse solver that computes the material reaction wrench on each rigid body.
-We implement Particle NeRD as an alternative solver behind the solver interface of Newton.
-\junnosuke{TODO: integration with the streaming mechanism of Sec.~\ref{sec:moving_patch} is not confirmed. The local solver has no streaming code, and the G1 solver has its own moving patch. Also, training uses a single fixed sand material.}
+\junnosuke{TODO: cut into quater or half page.} \\
+% \label{sec:particle_nerd}
+% Streaming MPM makes the simulation cost independent of the terrain size, which leaves the numerical solve for the particles in the pool as the remaining cost of each physics step.
+% To reduce this per-step cost and further accelerate policy training, we introduce Particle NeRD, a learned neural surrogate of MPM.
+% Our key design choice is to replace only the one-way coupled MPM with a neural surrogate, while keeping the rigid-body dynamics solver and the solver coupling interface.
+% Particle NeRD consists of (1) a particle motion prediction network, which combines a local neighborhood encoder with a collider-conditioned Transolver~\cite{transolver}, and (2) a particle impulse solver that computes the material reaction wrench on each rigid body.
+% We implement Particle NeRD as an alternative solver behind the solver interface of Newton.
+% \junnosuke{TODO: integration with the streaming mechanism of Sec.~\ref{sec:moving_patch} is not confirmed. The local solver has no streaming code, and the G1 solver has its own moving patch. Also, training uses a single fixed sand material.}
 
-\textbf{Particle Motion Prediction:}
-Let $\vect{x}_i^t$ be the position of particle $i$ at step $t$ and $\vect{v}_i^t=(\vect{x}_i^t-\vect{x}_i^{t-1})/\Delta t$ its finite-difference velocity over the step $\Delta t$.
-Given the 3-step position history of the particles, the material features, and the collider states, the network predicts for each particle a velocity correction $\delta\vect{v}_i$, a position correction $\delta\vect{x}_i$, and two gates $\alpha_i,\beta_i\in(0,1)$.
-We add these learned corrections to a semi-implicit Euler step, which first updates the velocity and then integrates it into the position:
-\begin{equation}
-    \begin{aligned}
-        \vect{v}_i^{t+1} &= \alpha_i\left(\vect{v}_i^t+\delta\vect{v}_i\right)+\beta_i\,\vect{w}_i,\\
-        \vect{x}_i^{t+1} &= \vect{x}_i^t+\Delta t\,\vect{v}_i^{t+1}+\alpha_i\,\delta\vect{x}_i,
-    \end{aligned}
-    \label{eq:nerd_update}
-\end{equation}
-where $\vect{w}_i$ is the velocity of the nearby collider surfaces, weighted by their proximity to the particle.
-The material features comprise normalized constitutive parameters, such as density, friction, and yield parameters, and the collider features encode the signed distance, outward surface normal, relative surface velocity, and friction coefficient of each particle-collider pair.
-Furthermore, we improve the scalability of Particle NeRD with the number of particles through active particle selection, where the network evaluates the active particles and sparse background samples that represent the inactive particles.
-
-We train the prediction network to minimize the particle position and velocity errors, balanced between moving and stationary particles, together with a drift penalty on particles at rest.
-The dataset is generated by one-way coupled MPM and two-way coupled MPM-MuJoCo Warp simulations of object interactions, and by free-falling material.
-To improve the long-term prediction accuracy, we recurrently feed the network its own predictions over a window of up to 0.5~s while the colliders follow their recorded trajectories.
-
-\textbf{Particle Impulse Solver:}
-Integrating Particle NeRD into the robot dynamics through the solver coupling requires the reaction force of the material on the coupled bodies.
-The particle impulse solver extrapolates the predicted material velocity to the collider surface and solves for the contact impulses on each body.
-For the $i$-th contact point of a body, let $\vect{\lambda}_i=[\lambda_{i,n},\vect{\lambda}_{i,t}^\top]^\top$ be the contact impulse in the local contact frame, with normal component $\lambda_{i,n}$ and tangential component $\vect{\lambda}_{i,t}$.
-All contacts of the body are coupled through its twist
-\begin{equation}
-    \vect{u}=\vect{u}_0+\vect{M}^{-1}\sum_i\vect{J}_i^\top\vect{\lambda}_i,
-    \label{eq:nerd_twist}
-\end{equation}
-where $\vect{u}_0$ is the contact-free twist, $\vect{M}$ is the spatial inertia of the body, and $\vect{J}_i$ is the contact Jacobian.
-The relative velocity at the contact is $\vect{r}_i=\vect{J}_i\vect{u}-\tilde{\vect{v}}_i+\vect{C}_i\vect{\lambda}_i$, where $\tilde{\vect{v}}_i$ is the predicted material velocity extrapolated to the contact point and $\vect{C}_i$ is the mobility of the material, which is the inverse of an effective mass that depends on the direction of the contact normal.
-With the residual $\vect{e}_i=\vect{r}_i+[b_i,0,0]^\top$, where $b_i$ is the gap-recovery speed, and the compliance $\vect{K}_i=\vect{J}_i\vect{M}^{-1}\vect{J}_i^\top+\vect{C}_i$, each iteration updates the impulse by solving the following nonlinear optimization:
+% \textbf{Particle Motion Prediction:}
+% Let $\vect{x}_i^t$ be the position of particle $i$ at step $t$ and $\vect{v}_i^t=(\vect{x}_i^t-\vect{x}_i^{t-1})/\Delta t$ its finite-difference velocity over the step $\Delta t$.
+% Given the 3-step position history of the particles, the material features, and the collider states, the network predicts for each particle a velocity correction $\delta\vect{v}_i$, a position correction $\delta\vect{x}_i$, and two gates $\alpha_i,\beta_i\in(0,1)$.
+% We add these learned corrections to a semi-implicit Euler step, which first updates the velocity and then integrates it into the position:
 % \begin{equation}
 %     \begin{aligned}
-%         \Delta\lambda_{i,n}^{*} &= \operatorname*{arg\,min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}\\
-%         &\qquad \text{s.t.}\ \ \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0,\\
-%         \Delta\vect{\lambda}_{i,t}^{*} &= \operatorname*{arg\,min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t}\\
-%         &\qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}\\
-%         &\qquad \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
+%         \vect{v}_i^{t+1} &= \alpha_i\left(\vect{v}_i^t+\delta\vect{v}_i\right)+\beta_i\,\vect{w}_i,\\
+%         \vect{x}_i^{t+1} &= \vect{x}_i^t+\Delta t\,\vect{v}_i^{t+1}+\alpha_i\,\delta\vect{x}_i,
 %     \end{aligned}
-%     \label{eq:nerd_impulse}
+%     \label{eq:nerd_update}
 % \end{equation}
-\begin{subequations}
-    \label{eq:nerd_impulse}
-    \begin{align}
-        & \operatorname*{min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}
-        \\
-        & \text{s.t.}\ \ \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0,
-        \\
-        & \operatorname*{min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t} \nonumber \\
-        & \qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}
-        \\
-        & \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
-    \end{align}
-\end{subequations}
-where $\Delta\lambda_{i,n}$ and $\Delta\vect{\lambda}_{i,t}$ are the normal and tangential impulse increments, $\Delta\lambda_{i,n}^{*}$ is the optimal normal increment, the subscripts $n$ and $t$ select the normal and tangential blocks, and $\mu_i$ is the friction coefficient.
-The normal problem closes the gap without attractive impulses, and the tangential problem, which uses the optimal normal increment, enforces Coulomb friction.
-We solve Eq.~\eqref{eq:nerd_impulse} for all contacts with Jacobi iterations, which add the optimal increments to the impulses and update the twist in Eq.~\eqref{eq:nerd_twist} after every sweep.
-The converged impulses are summed into a force and a torque about the center of mass of each body, which MuJoCo Warp applies together with actuation, gravity, and rigid contacts.
+% where $\vect{w}_i$ is the velocity of the nearby collider surfaces, weighted by their proximity to the particle.
+% The material features comprise normalized constitutive parameters, such as density, friction, and yield parameters, and the collider features encode the signed distance, outward surface normal, relative surface velocity, and friction coefficient of each particle-collider pair.
+% Furthermore, we improve the scalability of Particle NeRD with the number of particles through active particle selection, where the network evaluates the active particles and sparse background samples that represent the inactive particles.
+
+% We train the prediction network to minimize the particle position and velocity errors, balanced between moving and stationary particles, together with a drift penalty on particles at rest.
+% The dataset is generated by one-way coupled MPM and two-way coupled MPM-MuJoCo Warp simulations of object interactions, and by free-falling material.
+% To improve the long-term prediction accuracy, we recurrently feed the network its own predictions over a window of up to 0.5~s while the colliders follow their recorded trajectories.
+
+% \textbf{Particle Impulse Solver:}
+% Integrating Particle NeRD into the robot dynamics through the solver coupling requires the reaction force of the material on the coupled bodies.
+% The particle impulse solver extrapolates the predicted material velocity to the collider surface and solves for the contact impulses on each body.
+% For the $i$-th contact point of a body, let $\vect{\lambda}_i=[\lambda_{i,n},\vect{\lambda}_{i,t}^\top]^\top$ be the contact impulse in the local contact frame, with normal component $\lambda_{i,n}$ and tangential component $\vect{\lambda}_{i,t}$.
+% All contacts of the body are coupled through its twist
+% \begin{equation}
+%     \vect{u}=\vect{u}_0+\vect{M}^{-1}\sum_i\vect{J}_i^\top\vect{\lambda}_i,
+%     \label{eq:nerd_twist}
+% \end{equation}
+% where $\vect{u}_0$ is the contact-free twist, $\vect{M}$ is the spatial inertia of the body, and $\vect{J}_i$ is the contact Jacobian.
+% The relative velocity at the contact is $\vect{r}_i=\vect{J}_i\vect{u}-\tilde{\vect{v}}_i+\vect{C}_i\vect{\lambda}_i$, where $\tilde{\vect{v}}_i$ is the predicted material velocity extrapolated to the contact point and $\vect{C}_i$ is the mobility of the material, which is the inverse of an effective mass that depends on the direction of the contact normal.
+% With the residual $\vect{e}_i=\vect{r}_i+[b_i,0,0]^\top$, where $b_i$ is the gap-recovery speed, and the compliance $\vect{K}_i=\vect{J}_i\vect{M}^{-1}\vect{J}_i^\top+\vect{C}_i$, each iteration updates the impulse by solving the following nonlinear optimization:
+% % \begin{equation}
+% %     \begin{aligned}
+% %         \Delta\lambda_{i,n}^{*} &= \operatorname*{arg\,min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}\\
+% %         &\qquad \text{s.t.}\ \ \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0,\\
+% %         \Delta\vect{\lambda}_{i,t}^{*} &= \operatorname*{arg\,min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t}\\
+% %         &\qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}\\
+% %         &\qquad \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
+% %     \end{aligned}
+% %     \label{eq:nerd_impulse}
+% % \end{equation}
+% \begin{subequations}
+%     \label{eq:nerd_impulse}
+%     \begin{align}
+%         & \operatorname*{min}_{\Delta\lambda_{i,n}}\ \tfrac{1}{2}K_{i,nn}\,\Delta\lambda_{i,n}^{2}+e_{i,n}\,\Delta\lambda_{i,n}
+%         \\
+%         & \text{s.t.}\ \ \lambda_{i,n}+\Delta\lambda_{i,n}\geq 0,
+%         \\
+%         & \operatorname*{min}_{\Delta\vect{\lambda}_{i,t}}\ \tfrac{1}{2}\Delta\vect{\lambda}_{i,t}^\top\vect{K}_{i,tt}\,\Delta\vect{\lambda}_{i,t} \nonumber \\
+%         & \qquad\qquad +\left(\vect{e}_{i,t}+\vect{K}_{i,tn}\,\Delta\lambda_{i,n}^{*}\right)^\top\Delta\vect{\lambda}_{i,t}
+%         \\
+%         & \text{s.t.}\ \ \|\vect{\lambda}_{i,t}+\Delta\vect{\lambda}_{i,t}\|_2\leq\mu_i\left(\lambda_{i,n}+\Delta\lambda_{i,n}^{*}\right),
+%     \end{align}
+% \end{subequations}
+% where $\Delta\lambda_{i,n}$ and $\Delta\vect{\lambda}_{i,t}$ are the normal and tangential impulse increments, $\Delta\lambda_{i,n}^{*}$ is the optimal normal increment, the subscripts $n$ and $t$ select the normal and tangential blocks, and $\mu_i$ is the friction coefficient.
+% The normal problem closes the gap without attractive impulses, and the tangential problem, which uses the optimal normal increment, enforces Coulomb friction.
+% We solve Eq.~\eqref{eq:nerd_impulse} for all contacts with Jacobi iterations, which add the optimal increments to the impulses and update the twist in Eq.~\eqref{eq:nerd_twist} after every sweep.
+% The converged impulses are summed into a force and a torque about the center of mass of each body, which MuJoCo Warp applies together with actuation, gravity, and rigid contacts.

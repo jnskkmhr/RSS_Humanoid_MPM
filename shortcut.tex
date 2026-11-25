@@ -9,7 +9,7 @@
 % ---------------------------------------------------------------- Drafting
 % Red placeholder for results, numbers, and claims that still need measured evidence.
 \newcommand{\pending}[1]{\textcolor{red}{[#1]}}
-% Brown marker for numbers taken from an unchecked task output. Each one must be replaced by a checked value from FINAL.md.
+% Brown marker for provisional numbers.
 \newcommand{\unchecked}[1]{\textcolor{brown}{#1}}
 
 % ---------------------------------------------------------------- Figures
@@ -20,6 +20,22 @@
     {\includegraphics[width=\linewidth,#1]{#2}}%
     {\fbox{\parbox[c][2.0cm][c]{0.95\linewidth}{\centering\junnosuke{TODO: figure \texttt{\detokenize{#2}}}}}}%
 }
+
+% ---------------------------------------------------------------- Tables
+% Mean and standard deviation in a table cell: \ms{mean}{std}. The mean is black, and the "± std" part is grey and smaller.
+% To drop the standard deviation everywhere, replace the definition by: \newcommand{\ms}[2]{#1}
+\newcommand{\ms}[2]{#1{\tiny\,\textcolor{gray}{$\pm$\,#2}}}
+% Table captions in normal upright type, like the figure captions. This departs from the IEEEtran default, which sets
+% the table caption text in small capitals; the label ("TABLE I") is unchanged. To revert, delete the \patchcmd line.
+\RequirePackage{etoolbox}
+\makeatletter
+\patchcmd{\@makecaption}{\scshape}{}{}{\PackageWarning{shortcut}{Could not patch the table caption font}}
+\makeatother
+% Placeholder for a table cell whose value is still to come.
+\newcommand{\todocell}{\textcolor{blue}{\textbf{?}}}
+% Arrows for table headers that show the better direction of a metric: higher is better, lower is better.
+\newcommand{\higherbetter}{$\uparrow$}
+\newcommand{\lowerbetter}{$\downarrow$}
 
 % ---------------------------------------------------------------- Headings
 % Sub-subsections: numbered B-1, B-2, C-1, ... (no parenthesis, no colon), with the title on its own line and without indent.

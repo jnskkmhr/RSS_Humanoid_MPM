@@ -1,0 +1,57 @@
+% !TEX root = ../paper.tex
+% NOT USED: this file is not \input anywhere. It keeps the walking results table (tab:t3_walk) that was in
+% Section IV-C-1 until 2026-11-24, when Junnosuke replaced it by the slope and material figures because the single table was too big.
+% The stance foot velocity cells are placeholders (\todocell); the step-time values are in the comment at the end.
+% Macros used (\ms, \higherbetter, \lowerbetter, \todocell) are defined in shortcut.tex.
+\begin{table}[t]
+    \centering
+    % The caption is above the table, in normal type (see the table-caption patch in shortcut.tex), and kept to two short sentences.
+    % The metric definitions, the ordering, and the trial count are in the text of C-1 where the table is first cited.
+    % TODO (note to ourselves): the stance foot velocity cells are placeholders (\todocell) until the values arrive.
+    \caption{
+        Locomotion on slopes and on softer material.
+        Slopes use sand $(\rho,\mu)=(1800~\mathrm{kg/m^3}, 0.80)$; materials are on level ground, $\rho$ in kg/m$^3$.
+    }
+    \label{tab:t3_walk}
+    \scriptsize
+    \setlength{\tabcolsep}{2.2pt}
+    \begin{tabular}{@{}l ccc ccc ccc@{}}
+        \toprule
+        & \multicolumn{3}{c}{SR [\%] \higherbetter} & \multicolumn{3}{c}{$e_v$ [m/s] \lowerbetter} & \multicolumn{3}{c}{Stance foot vel. [m/s] \lowerbetter} \\
+        \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-10}
+        & MJWarp & RFT & MPM & MJWarp & RFT & MPM & MJWarp & RFT & MPM \\
+        \midrule
+        \textit{Slope} & & & & & & & & & \\
+        $-30^\circ$ & 100 & 100 & 100 & 0.23 & 0.22 & 0.28 & \todocell & \todocell & \todocell \\
+        $-20^\circ$ & 100 & 100 & 100 & 0.10 & 0.10 & 0.14 & \todocell & \todocell & \todocell \\
+        $-10^\circ$ & 100 & 100 & 100 & 0.07 & 0.08 & 0.07 & \todocell & \todocell & \todocell \\
+        $0^\circ$ & 100 & 100 & 100 & 0.10 & 0.10 & 0.06 & \todocell & \todocell & \todocell \\
+        $+10^\circ$ & 40 & 100 & 100 & 0.31 & 0.10 & 0.06 & \todocell & \todocell & \todocell \\
+        $+20^\circ$ & 0 & 100 & 100 & -- & 0.13 & 0.07 & \todocell & \todocell & \todocell \\
+        $+30^\circ$ & 0 & 30 & 100 & -- & 0.18 & 0.13 & \todocell & \todocell & \todocell \\
+        \midrule
+        $(\rho, \mu)$ & & & & & & & & & \\
+        rigid & 100 & 100 & 100 & 0.04 & 0.05 & 0.04 & \todocell & \todocell & \todocell \\
+        (3000, 0.90) & 100 & 100 & 100 & 0.07 & 0.12 & 0.06 & \todocell & \todocell & \todocell \\
+        (1800, 0.80) & 100 & 100 & 100 & 0.10 & 0.09 & 0.06 & \todocell & \todocell & \todocell \\
+        (682, 1.07) & 90 & 100 & 100 & 0.48 & 0.11 & 0.06 & \todocell & \todocell & \todocell \\
+        (1000, 0.70) & 0 & 100 & 100 & -- & 0.11 & 0.06 & \todocell & \todocell & \todocell \\
+        (640, 0.73) & 0 & 100 & 100 & -- & 0.12 & 0.08 & \todocell & \todocell & \todocell \\
+        \bottomrule
+    \end{tabular}
+    \vspace{-3mm}
+    % Step time [s] (MJWarp / RFT / MPM), removed from the table on 2026-11-24 to make room for the stance foot velocity:
+    %   $-30^\circ$: 0.33 / 0.27 / 0.30
+    %   $-20^\circ$: 0.37 / 0.28 / 0.32
+    %   $-10^\circ$: 0.30 / 0.27 / 0.31
+    %   $0^\circ$: 0.22 / 0.25 / 0.30
+    %   $+10^\circ$: 0.20 / 0.23 / 0.24
+    %   $+20^\circ$: -- / 0.22 / 0.22
+    %   $+30^\circ$: -- / 0.24 / 0.22
+    %   rigid: 0.39 / 0.35 / 0.32
+    %   (3000, 0.90): 0.27 / 0.30 / 0.32
+    %   (1800, 0.80): 0.22 / 0.25 / 0.30
+    %   (682, 1.07): 0.20 / 0.24 / 0.26
+    %   (1000, 0.70): -- / 0.23 / 0.24
+    %   (640, 0.73): -- / 0.22 / 0.23
+\end{table}
