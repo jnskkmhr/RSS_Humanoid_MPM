@@ -40,19 +40,18 @@ With this coarser grid, the drag force on the object agrees with DEM within abou
 % Placeholder for a compact single-column figure: how well the tuned MPM matches DEM in penetration, deformation, and dispersion across motion types, with DEM seed against seed as the reference. The earlier double-column height-map figure is figures/t8_mpm_dem.pdf (not used).
 % Note for later: once that figure is in, B-1 should speak of the optimized (tuned) MPM only in connection with the figure.
 \begin{figure}[t]
-    \centering
-    \IfFileExists{figures/t8_mpm_dem_stats_v5.pdf}%
-        {\includegraphics[width=\linewidth]{figures/t8_mpm_dem_stats_v5.pdf}}%
-        {\fbox{\parbox[c][1.8in][c]{0.95\linewidth}{\centering\junnosuke{TODO: figure of MPM against DEM across motion types}}}}
-    \vspace{-10mm}
-    \caption{
-        \textbf{Agreement of MPM with DEM across four object motions.}
-        Error relative to DEM in penetration, deformation, and dispersion.
-    }
-    \label{fig:t8_dem}
-    \vspace{-3mm}
+        \centering
+        \IfFileExists{figures/t8_mpm_dem_stats_v5.pdf}%
+            {\includegraphics[width=\linewidth]{figures/t8_mpm_dem_stats_v5.pdf}}%
+            {\fbox{\parbox[c][1.8in][c]{0.95\linewidth}{\centering\junnosuke{TODO: figure of MPM against DEM across motion types}}}}
+        \vspace{-10mm}
+        \caption{
+            \textbf{Agreement of MPM with DEM across four object motions.}
+            Error relative to DEM in penetration, deformation, and dispersion.
+        }
+        \label{fig:t8_dem}
+        \vspace{-3mm}
 \end{figure}
-\junnosuke{2-way coupling MPM and DEM show super different results....}
 
 % B-2. Compute Efficiency of Streaming MPM
 \subsubsection{Compute Efficiency of Streaming MPM}
