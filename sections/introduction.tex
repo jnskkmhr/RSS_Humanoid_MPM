@@ -32,19 +32,15 @@ In summary, our key contributions are:
 %     \item Hardware deployment of the Unitree G1 humanoid robot for walking and object towing on steep granular terrain.
 % \end{itemize}
 
-\begin{itemize}
-    \item Streaming mechanism which scales MPM to unbounded terrain and larger parallel environments.
-    \item Particle neural robot dynamics (particle NeRD) which further speeds up physics simulation X times.
-    \item Reinforcement learning across multiple embodiments and tasks and hardware deployment. Particularly, we present particle manipulation with a UR10 manipulator, legged locomotion with the Unitree Go2 quadruped and the Unitree G1 humanoid, and humanoid object towing.
-\end{itemize}
+% \begin{itemize}
+%     \item Streaming mechanism which scales MPM to unbounded terrain and larger parallel environments.
+%     \item Particle neural robot dynamics (particle NeRD) which further speeds up physics simulation X times.
+%     \item Reinforcement learning across multiple embodiments and tasks and hardware deployment. Particularly, we present particle manipulation with a UR10 manipulator, legged locomotion with the Unitree Go2 quadruped and the Unitree G1 humanoid, and humanoid object towing.
+% \end{itemize}
 
-\junnosuke{
-    contribution change.
-    \begin{itemize}
-        \item merge second (RL) and third contributions (hardware) into one.
-        \item split MPM and particle NeRD into two bullets. 
-        \item 1st point is MPM: how we scale MPM to unbounded scene.
-        \item 2nd point is particle NeRD: we further speed up X times 
-        \item 3rd point is about showing this whole pipeline works for many robot examples, and hardware deployment.
-    \end{itemize}
-}
+\begin{itemize}
+    \item Evaluation of MPM's accuracy and streaming mechanism which makes MPM tractable for policy learning on unbounded terrain and larger parallel environments.
+    \item Holistic benchmark on when MPM is useful over baselines.
+    \item Demonstration that the whole pipeline works for multiple tasks and transfers from simulation to hardware.
+    \item Particle neural robot dynamics (particle NeRD), a neural surrogate which further speeds up policy training X times.
+\end{itemize}
