@@ -45,7 +45,6 @@ This step returns the new particle states and the contact wrench on each body, w
     \caption{
         \textbf{Terrain history.}
         Terrain height after the second lap of the box, relative to the settled surface of each mode, with sleeping off.
-        \junnosuke{to be updated}
     }
     \label{fig:t1_history}
     \vspace{-3mm}
@@ -54,25 +53,25 @@ This step returns the new particle states and the contact wrench on each body, w
 % B. RL tasks
 \subsection{Reinforcement Learning on Granular Terrain}
 \label{sec:env_design}
-We train reinforcement learning policies across diverse embodiments and tasks to demonstrate that our framework generalizes to diverse environments.
-These tasks cover (1) manipulation, (2) legged locomotion, and (3) whole-body soil manipulation.
+We train reinforcement learning policies across diverse tasks to demonstrate that our framework generalizes to diverse environments.
+These tasks cover (1) walking, (2) soil manipulation, and (3) object transport.
 We treat each task as a Markov decision process and train policies with asymmetric proximal policy optimization (PPO)~\cite{ppo,pinto2018asymmetric}.
 Both the actor and critic are separate three-layer MLPs with hidden sizes of (512, 256, 128) and ELU activations.
 We train all policies on NVIDIA L40S GPUs with up to 2,560 parallel environments.
 
-\textbf{Particle Manipulation:}
-A UR10 manipulator pushes granular material into a bin with a paddle.
-The policy observes the joint states, the paddle pose, and an overhead heightmap of the granular surface, and outputs relative joint position targets; the reward combines the progress of material into the bin with penalties on spilled material and action magnitude.
-\junnosuke{TODO: Max}
-
-\textbf{Quadrupedal and Bipedal Locomotion:}
-For the locomotion task, we train floating-base linear and angular velocity tracking policies for the Unitree Go2 quadruped and the Unitree G1 humanoid.
+\textbf{Bipedal Locomotion:}
+For the locomotion task, we train floating-base linear and angular velocity tracking policies for the Unitree G1 humanoid.
 The actor observes a 10-step history of proprioception, including IMU and joint states, the previous action, and the velocity command.
 The critic additionally receives the base linear velocity, foot heights and contact states, and the material parameters of MPM.
 The action is the desired joint position offset from a nominal position, which a joint-space PD controller tracks.
 The reward function consists of task rewards for velocity command tracking and regularization penalties, such as joint position deviation and stance foot orientation.
 At episode termination, we randomize the sand friction ($0.3 \sim 0.9$), grain density ($1000 \sim 3000\mathrm{~kg/m^3}$), Young's modulus ($10^7 \sim 10^9 \mathrm{~Pa}$), and yield pressure ($10^8 \sim 10^9 \mathrm{~Pa}$).
 To enhance the robustness of the policy, we further apply random perturbations to the floating base of the robot and randomize the IMU roll and pitch angle error, joint PD gains, foot friction, and torso mass.
+
+\textbf{Soil Manipulation:}
+A UR10 manipulator pushes granular material into a bin with a paddle.
+The policy observes the joint states, the paddle pose, and an overhead heightmap of the granular surface, and outputs relative joint position targets; the reward combines the progress of material into the bin with penalties on spilled material and action magnitude.
+\junnosuke{TODO: Max}
 
 \textbf{Object Transport:}
 We extend the humanoid locomotion task to object transport, where the robot pulls a rigid object with a mass of up to $15\mathrm{~kg}$.

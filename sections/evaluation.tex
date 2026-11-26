@@ -7,7 +7,7 @@ Specifically, we address the following key questions:
     \item \textbf{Q1:} Is MPM accurate compared to the discrete element method (DEM)?
     \item \textbf{Q2:} Does streaming MPM bound the compute cost and memory usage as the terrain and the number of environments grow?
     \item \textbf{Q3:} How is MPM beneficial for policy learning?
-    \item \textbf{Q4:} How does the pipeline scale to various embodiments and tasks, and does it transfer to hardware?
+    \item \textbf{Q4:} Does the pipeline transfer to hardware?
 \end{itemize}
 
 % A. Experimental Setup
@@ -48,6 +48,7 @@ With this coarser grid, the drag force on the object agrees with DEM within abou
         \caption{
             \textbf{Agreement of MPM with DEM across four object motions.}
             Error relative to DEM in penetration, deformation, and dispersion.
+            \junnosuke{to be updated}
         }
         \label{fig:t8_dem}
         \vspace{-3mm}
@@ -211,18 +212,13 @@ The RFT policy walks on the stiffer sands without the object, but the object loa
 % \end{table}
 
 % D. Policy Transfer across Embodiments and Tasks
-\subsection{Scalability and Hardware Experiments}
+\subsection{Hardware Experiments}
 \label{sec:hardware}
-% (1) Same recipe across embodiments and tasks.
-To answer Q4, we train one policy for each embodiment and task of Sec.~\ref{sec:env_design}.
-G1 walking and G1 object towing are trained with the same recipe, and both policies succeed on MPM sand (Sec.~\ref{sec:results}-C).
-\junnosuke{TODO (same recipe across embodiments and tasks): Go2 walking and UR10 particle pushing (from Max).}
-
-% (2) Sim-to-sim transfer.
+% (1) Sim-to-sim transfer.
 \junnosuke{TODO (sim-to-sim transfer): each deployed policy evaluated in a simulator other than the one it was trained in, before hardware.}
 
-% (3) Sim-to-real transfer: G1 on real sand.
-On hardware, all three walking policies traverse the flat testbed and a $10^\circ$ slope without failure.
+% (2) Sim-to-real transfer: G1 on real sand.
+To answer Q4, we deploy the three walking policies on hardware, and all three traverse the flat testbed and a $10^\circ$ slope without failure.
 \junnosuke{TODO (sim-to-real transfer): the $20^\circ$ slope is not run yet. Also number of trials per policy, object towing on hardware, and the hardware figure.}
 
 
