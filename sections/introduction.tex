@@ -9,6 +9,18 @@ Furthermore, granular physics solvers perform a compute-intensive optimization a
 Thus, achieving a general whole-body controller in the field is an open research question.
 \junnosuke{Make hook bit more concise.}
 
+% Teaser (Fig. 1). Placed after the first paragraph so that it lands at the top of the right column of page 1.
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/g1_granular_incline.pdf}
+    \caption{
+        \textbf{Unitree G1 humanoid walking on an inclined granular testbed.}
+        \junnosuke{Add sim component to fig1}
+    }
+    \label{fig:teaser}
+    \vspace{-3mm}
+\end{figure}
+
 Existing works leverage reduced-order force models~\cite{rft,agarwal2023rft3d,choi,luo2025mild,gmloco} and particle methods~\cite{mpm,dem,vbd,apic} to simulate terrain-robot interactions.
 % lack functionality for policy training
 In particular, particle-based simulation captures plastic deformation and granular material flow, but state-of-the-art robotics simulators lack support for policy training on particles.
